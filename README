@@ -1,0 +1,46 @@
+####################
+# The flpz Program #
+###################
+
+
+* What does it do? *
+********************
+
+The flpz program will take in a crystal and a phonon representation and calculate the flexoelectric 
+and piezoelectric tensors of the crystal once the phonon with the specified representation is frozen
+in place. You can calculate multiple datapoints for multiple amplitudes of the frozen in phonon. 
+
+* Inputs *
+**********
+
+1.) general_structure.abi: An abinit file that defines the crystal, k-point lattice, and any SCF procedure variables such as 
+tolerances and ecut. 
+
+2.) sInput.txt: A file that serves as the input to the smodes program on Isotropy. Written as:
+acell parameters
+space group number
+primitive vectors and angles
+wyckoff positions of atoms listed in "atom name" and "position"
+number of phonon points listed (should be 1) 
+phonon points (e.g. GM or M)
+
+3. irrep: The irrepresentation at a particular point in the brillouin zone 
+(e.g. M3+ or GM4-)
+
+* Outputs *
+***********
+
+1.) A matlab file name Datasets.m that can be plugged in using the attached matlab code to plot 
+the piezoelectric and flexoeelctric tensor components. The x-point (amplitude) and total energy
+of each perturbed unit cell are included as vectors as well. 
+
+
+
+* Final Note *
+**************
+
+An example of each input is included in the folder attached. Furthermore, all working code is in
+the flpz folder and the executable is flpzPert.sh. 
+
+Should be executed as: bash flpz.Pert.sh general_structure.abi sInput.txt irrep
+
