@@ -5,7 +5,7 @@ kptopt 2  # Takes into account time-reversal symmetry.
         
 #Definition of unit cell
 #***********************
-acell  3*7.2546681373
+acell  3*7.2546859919
 xcart
      3.6273340687  3.6273340687  3.6273340687 
      0.0000000000  0.0000000000  0.0000000000
@@ -22,7 +22,7 @@ typat 1 2 3*3
 
 #Definition of the planewave basis set
 #*************************************
-ecut 50
+ecut 70
 ecutsm 0.5 #Smoothing energy needed for lattice parameter optimization. 
 
 #Definition of the k-point grid 
@@ -30,16 +30,15 @@ ecutsm 0.5 #Smoothing energy needed for lattice parameter optimization.
 kptrlatt  #34
  8   0   0
  0   8   0
- 0   0   8
+ 0   0   8 
 shiftk 0.5 0.5 0.5
-nband 26
+nband 20
 
 #Definition of SCF Procedure
 #***************************
 nstep 50
 diemac 4.0
 ixc -116133    #GGA specified by psuedopotential files
-autoparal=1
 toldfe 1.0d-8
 
 pp_dirpath "../"

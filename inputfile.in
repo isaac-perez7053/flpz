@@ -5,10 +5,10 @@ name catio3
 genstruc general_structure.abi
 
 # Number of datapoints
-num_datapoints 1
+num_datapoints 9
 
 #Number of processers for datapoint calculation
-nproc 2
+nproc 20
 
 # Minimum amplitude during datapoint collection
 min 0
@@ -19,3 +19,7 @@ max 0.8
 # Time limit for jobs
 time_limit 23:59:59
 
+
+eigVec_nlines 1
+eigVec_lines
+1

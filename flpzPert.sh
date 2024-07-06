@@ -32,15 +32,18 @@ ntypat=$(grep "ntypat" "$general_structure_file" | awk '{print $2}')
 dir="${structure}_${irrep}"
 mkdir "$dir"
 
-# Generation of boilerplate for Prof. Ritz's code
-bash flpz/boilerplate_generation.sh "$input_file"
-mv boilerplate "$dir"
-
 # Copy code into new working directory
-cp flpz/boilerplate_generation.sh "$dir"/.
-cp flpz/smodes_symmadapt_abinit.py "$dir"/.
-cp flpz/loop_smodes.tcsh "$dir"/.
-cp flpz/smodes_postproc_abinit.py "$dir"/.
+cp flpz_code/boilerplate_generation.sh "$dir"/.
+cp flpz_code/smodes_symmadapt_abinit.py "$dir"/.
+cp flpz_code/loop_smodes.tcsh "$dir"/.
+cp flpz_code/smodes_postproc_abinit.py "$dir"/.
+cp flpz_code/eigVecExt.sh "$dir"/.
+cp flpz_code/datapointCalcofElec.sh "$dir"/.
+cp flpz_code/dataAnalysis.sh "$dir"/.
+
+# Generation of boilerplate for Prof. Ritz's code
+bash "$dir"/boilerplate_generation.sh "$input_file"
+mv boilerplate "$dir"
 
 ### Begin Working in new directory ###
 cd "$dir"
@@ -56,6 +59,17 @@ do
    pseudos="$(grep "pseudos" "../$general_structure_file" | awk "{print \$$ntypat}" | sed 's/[,"]//g')"
    cp boilerplate/"$pseudos" SMODES_"$irrep"/.
 done
+
+# Copy pseudopotentials into Calculation for abi cacluations
+for ntypat in $(seq 2 $(( ntypat + 1)) )
+do
+   pseudos="$(grep "pseudos" "../$general_structure_file" | awk "{print \$$ntypat}" | sed 's/[,"]//g')"
+   cp boilerplate/"$pseudos" .
+done
+
+#NOTE: Leave it up to user to correctly put pseudopotentials in flpz directory and directory
+#before. 
+
 
 echo "Successfully Created Dependencies"
 echo "FCEvec Calculations Begin"
@@ -101,7 +115,7 @@ mv "SMODES_${irrep}/FCEvecs.dat" "."
 mv "SMODES_${irrep}/DynFreqs.dat" "."
 
 # Take unstable eigenvectors and cat to input
-bash ../eigVecExt.sh "DynFreqs.dat" "FCEvecs.dat" "$input_file"
+bash eigVecExt.sh "DynFreqs.dat" "FCEvecs.dat" "$input_file"
 
 # Store outputs of previous script
 eigVec_nlines=$(grep "eigVec_nlines" "../$input_file" | awk '{print $2}')
@@ -124,7 +138,7 @@ echo "Calculation of Datapoints Begin"
 # Execute all input files generated
 for eigVec in ${eigVec_lines}
 do
-   bash ../datapointCalcofElec.sh "${input_file}_vec${eigVec}"
+   bash datapointCalcofElec.sh "${input_file}_vec${eigVec}"
 done
 
 echo "flpz Program has Completed Calculations"
