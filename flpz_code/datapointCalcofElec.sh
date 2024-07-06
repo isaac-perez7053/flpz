@@ -215,7 +215,7 @@ EOF
 cat << EOF > "${script}"
 #!/bin/bash
 #SBATCH --job-name=abinit
-#SBATCH --partition=compute
+#SBATCH --partition=shared
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=${nproc}
 #SBATCH --cpus-per-task=1
@@ -258,7 +258,7 @@ done
 for job_id in "${job_ids[@]}"; do
     squeue -h -j "$job_id"
     while [ $? -eq 0 ]; do
-        sleep 60  # Check every minute
+        sleep 600  # Check every 10 minutes
         squeue -h -j "$job_id"
     done
     echo "Job $job_id completed"
