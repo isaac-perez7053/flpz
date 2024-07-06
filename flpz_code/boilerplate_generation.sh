@@ -38,12 +38,12 @@ cat << EOF > "${script}"
 #SBATCH --job-name=abinit
 #SBATCH --partition=shared
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=1
 ##Change this to your allocation ID
 #SBATCH --account=crl174
 #SBATCH --mem=64G
-#SBATCH --time=0:29:59
+#SBATCH --time=${time_limit}
 #SBATCH --output=output.log
 
 module purge
