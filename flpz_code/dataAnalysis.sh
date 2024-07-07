@@ -26,7 +26,7 @@ export PATH=/expanse/projects/qstore/use300/jpg/abinit-10.0.5/bin:$PATH
 # Storing inputs from input file
 ################################
 
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 4 ]; then
     echo "Usage: $0 <arg1>"
     exit 1
 fi
@@ -35,6 +35,7 @@ fi
 input_fileAn="$1"
 xpoints="$2"
 inputAbo_files="$3"
+structure="$4"
 
 # Creation of output file
 output_file="Datasets.m"
@@ -105,24 +106,28 @@ dummy3
 EOF
 
 # Run Anaddb Files
-mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np $SLURM_NTASKS anaddb < ${anaddbfilesF} >& ${anaddbfilesF}.log
-mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np $SLURM_NTASKS anaddb < ${anaddbfilesP} >& ${anaddbfilesP}.log
+mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np 1 anaddb < ${anaddbfilesF} >& ${anaddbfilesF}.log
+mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np 1 anaddb < ${anaddbfilesP} >& ${anaddbfilesP}.log
 
-# Store flexoelectric tensor into output file
-echo -e "%Flexoelectric Tensor: Dataset ${dataset}\n" >> "$output_file"
-flexoTen="mu${dataset} = [$(grep -A11 'TOTAL' "flexoElec_${dataset}" | grep -o '[-]\?[0-9]*\.*[0-9]\+')];" 
-echo "${flexoTen}" >> "$output_file"
-echo -e "\n\n\n" >> $output_file
-echo -e "%Piezoelectric Tensor: Dataset ${dataset}\n" >> "${output_file}"
+done
 
-# Store piezoelectric tensor into output file
-piezoTen="chi${dataset} = [$(grep -A7 'Proper piezoelectric constants (relaxed ion)' "piezoElec_${dataset}" | grep -o '[-]\?[0-9]*\.*[0-9]\+' | tail -n +2)];"
-echo "${piezoTen}" >> $output_file
-echo -e "\n\n\n" >> $output_file
+for dataset in $(seq 1 $(( num_datapoints + 1 )))
+do
 
-# Delete files that have no use
-rm "flexoElec_${dataset}" "piezoElec_${dataset}"
+   # Store flexoelectric tensor into output file
+   echo -e "%Flexoelectric Tensor: Dataset ${dataset}\n" >> "$output_file"
+   flexoTen="mu${dataset} = [$(grep -A11 'TOTAL' "flexoElec_${dataset}" | grep -o '[-]\?[0-9]*\.*[0-9]\+')];"
+   echo "${flexoTen}" >> "$output_file"
+   echo -e "\n\n\n" >> $output_file
+   echo -e "%Piezoelectric Tensor: Dataset ${dataset}\n" >> "${output_file}"
 
+   # Store piezoelectric tensor into output file
+   piezoTen="chi${dataset} = [$(grep -A7 'Proper piezoelectric constants (relaxed ion)' "piezoElec_${dataset}" | grep -o '[-]\?[0-9]*\.*[0-9]\+' | tail -n +2)];"
+   echo "${piezoTen}" >> $output_file
+   echo -e "\n\n\n" >> $output_file
+
+   # Delete files that have no use
+   rm "flexoElec_${dataset}" "piezoElec_${dataset}"
 done
 
 # Combines the x_vec with the flexoElectricity matricies
@@ -130,13 +135,23 @@ echo "];" >> "$outputEn_file"
 cat "$xpoints" >> "$output_file"
 cat "$outputEn_file" >> "$output_file"
 
+echo "Cleaning Up Some Files for You"
 rm "${anaddbfilesF}" "${anaddbfilesP}" "${anaddbP}" "${anaddbF}"
 rm anaddb*
 rm _anaddb.nc 
-rm $inputAbo_files
+#rm $inputAbo_files
 rm $outputEn_file
-rm $input_fileAn
-rm $xpoints
+#rm $input_fileAn
+#rm $xpoints
+
+rm "fort.7"
+rm "output.log"
+
+for iteration in $(seq 0 "$num_datapoints")
+do
+   rm ${structure}_${iteration}_vec*
+done
+
 
 echo "Data Analysis is Complete"
 

@@ -101,9 +101,9 @@ do
 
 
  ## Update datasets_file 
-   echo "${structure}_${iteration}o_DS4_DDB" >> "$datasets_file"
-   echo "${structure}_${iteration}o_DS5_DDB" >> "$datasets_file"
-   echo "${structure}_${iteration}.abo" >> "$datasetsAbo_file"
+   echo "${structure}_${iteration}_vec${vecNum}o_DS4_DDB" >> "$datasets_file"
+   echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >> "$datasets_file"
+   echo "${structure}_${iteration}_vec${vecNum}.abo" >> "$datasetsAbo_file"
    
 ######################################
 # Add the perturbation into the system
@@ -265,9 +265,10 @@ for job_id in "${job_ids[@]}"; do
 done
 echo "All Batch Scripts have Completed."
 echo "Data Analysis Begins"
+
 #Finish xpoints vector
 echo -e "];\n" >> "$xpoints"
 
 # Submit results to data analysis
-bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file"
+bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure"
                                                                                          
