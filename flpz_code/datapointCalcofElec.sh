@@ -269,6 +269,13 @@ echo "Data Analysis Begins"
 #Finish xpoints vector
 echo -e "];\n" >> "$xpoints"
 
+
+mkdir datapointAbiFiles
+for iteration in $(seq 0 "$num_datapoints")
+do
+   mv ${structure}_${iteration}_vec${vecNum}.abi datapointAbiFiles
+done 
+
 # Submit results to data analysis
 bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure"
                                                                                          
