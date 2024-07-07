@@ -147,11 +147,4 @@ rm $outputEn_file
 rm "fort.7"
 rm "output.log"
 
-for iteration in $(seq 0 "$num_datapoints")
-do
-   rm ${structure}_${iteration}_vec*
-done
-
-
-echo "Data Analysis is Complete"
 
