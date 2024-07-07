@@ -273,7 +273,7 @@ echo -e "];\n" >> "$xpoints"
 mkdir datapointAbiFiles
 for iteration in $(seq 0 "$num_datapoints")
 do
-   mv ${structure}_${iteration}_vec${vecNum}.abi datapointAbiFiles
+   mv ${structure}_${iteration}_vec${vecNum}.ab* datapointAbiFiles
 done 
 
 # Submit results to data analysis
