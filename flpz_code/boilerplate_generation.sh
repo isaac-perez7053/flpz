@@ -74,12 +74,31 @@ mv "${script}" boilerplate
 
 cp $general_structure_file boilerplate/template.abi 
 sed -i '/acell/c\CELLDEF' boilerplate/template.abi 
-xcart_location=$(grep -n "xcart" "boilerplate/template.abi" | cut -d: -f1)
-xcart_start=$(( xcart_location  ))
-xcart_end=$(( xcart_location+$(grep "natom" "$general_structure_file" | awk '{print $2}') ))
-sed "$xcart_start,${xcart_end}d" "boilerplate/template.abi" > "tmpfile.abi" && mv "tmpfile.abi" "boilerplate/template.abi"
 sed -i '/natom/d' "boilerplate/template.abi"
 sed -i '/ntypat/d' "boilerplate/template.abi"
 sed -i '/typat/d' "boilerplate/template.abi"
 sed -i '/znucl/d' "boilerplate/template.abi"
+
+if grep -q "^[[:space:]]*rprim" boilerplate/template.abi; then
+   rprim_location=$(grep -n "rprim" "boilerplate/template.abi" | cut -d: -f1)
+   rprim_start=$(( rprim_location  ))
+   rprim_end=$((rprim_location+3 ))
+   sed "$rprim_start,${rprim_end}d" "boilerplate/template.abi" > "tmpfile.abi" && mv "tmpfile.abi" "boilerplate/template.abi"   
+fi
+
+if grep -q "^[[:space:]]*xred" boilerplate/template.abi; then
+   xred_location=$(grep -n "xred" "boilerplate/template.abi" | cut -d: -f1)
+   xred_start=$(( xred_location  ))
+   xred_end=$(( xred_location+$(grep "natom" "$general_structure_file" | awk '{print $2}') ))
+   sed "$xred_start,${xred_end}d" "boilerplate/template.abi" > "tmpfile.abi" && mv "tmpfile.abi" "boilerplate/template.abi"
+fi
+
+if grep -q "^[[:space:]]*xcart" boilerplate/template.abi; then
+   xcart_location=$(grep -n "xcart" "boilerplate/template.abi" | cut -d: -f1)
+   xcart_start=$(( xcart_location  ))
+   xcart_end=$(( xcart_location+$(grep "natom" "$general_structure_file" | awk '{print $2}') ))
+   sed "$xcart_start,${xcart_end}d" "boilerplate/template.abi" > "tmpfile.abi" && mv "tmpfile.abi" "boilerplate/template.abi"
+fi 
+
+
 

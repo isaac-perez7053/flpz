@@ -21,7 +21,16 @@ input_file="$3"
 ####################################
 
 sed '1d' "$dynFreqs_file" > "tmpfile.abi" && mv "tmpfile.abi" "$dynFreqs_file" 
-eigVec_lines=$(grep -n "-" "$dynFreqs_file" | cut -d: -f1)
+# Check if the phonon is unstable and not acoustic
+eigVec_lines=$(awk '
+    {
+        if ($1 ~ /-/ || $2 ~ /-/) {
+            if ($2 < -20) {
+                print NR
+            }
+        }
+    }
+' "$dynFreqs_file")
 eigVec_nlines=$(echo "$eigVec_lines" | wc -l )
 eigVec_nlines="${eigVec_nlines#"${eigVec_nlines%%[![:space:]]*}"}" 
 echo "There are "$eigVec_nlines" unstable phonons" 
