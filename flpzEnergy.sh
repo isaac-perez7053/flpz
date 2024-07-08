@@ -10,7 +10,7 @@ if [ "$#" -ne 3 ]; then
     exit 1
 fi
 
-echo "Beginning flpz Program"
+echo "Beginning flpz Energy Program"
 
 ######################################################
 # Read input files and calculate constant quantities #
@@ -29,7 +29,7 @@ ntypat=$(grep "ntypat" "$general_structure_file" | awk '{print $2}')
 #####################################################
 
 # Main working directory for calculations
-dir="${structure}_${irrep}"
+dir="${structure}_${irrep}_Energy"
 mkdir "$dir"
 
 # Copy code into new working directory
@@ -38,9 +38,8 @@ cp flpz_code/smodes_symmadapt_abinit.py "$dir"/.
 cp flpz_code/loop_smodes.tcsh "$dir"/.
 cp flpz_code/smodes_postproc_abinit.py "$dir"/.
 cp flpz_code/eigVecExt.sh "$dir"/.
-cp flpz_code/datapointCalcofElec.sh "$dir"/.
+cp flpz_code/datapointCalcofEnergy.sh "$dir"/.
 cp flpz_code/dataAnalysis.sh "$dir"/.
-cp flpz_code/xredToxcart.sh "$dir"/.
 
 # Generation of boilerplate for Prof. Ritz's code
 bash "$dir"/boilerplate_generation.sh "$input_file"
@@ -111,9 +110,9 @@ echo "Post Processing of FCEvecs Begin"
 ###############################
 
 # Reassign genStruc as boilerplate base calculation.  
-sed -i '' 's|\(genStruc \)[^ ]*|\1'"SMODES_${irrep}/dist_0/dist_0.abi"'|' "../$input_file"
-# Convert xred to xcart for human readability
-bash xredToxcart.sh "SMODES_${irrep}/dist_0/dist_0.abi"
+sed -i '' 's|\(genStruc \)[^ ]*|\1'"${dir}/SMODES_${irrep}/dist_0/dist_0.abi"'|' "../$input_file"
+# Convert xred to xcart for human readability 
+bash xredToxcart.sh  "SMODES_${irrep}/dist_0/dist_0.abi"
 
 # Process smodes output
 python3 smodes_postproc_abinit.py "$irrep"
@@ -144,7 +143,7 @@ echo "Calculation of Datapoints Begin"
 # Execute all input files generated
 for eigVec in ${eigVec_lines}
 do
-   bash datapointCalcofElec.sh "${input_file}_vec${eigVec}"
+   bash datapointCalcofEnergy.sh "${input_file}_vec${eigVec}"
 done
 
 echo "flpz Program has Completed Calculations"
