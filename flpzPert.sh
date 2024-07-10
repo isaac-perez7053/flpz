@@ -111,7 +111,16 @@ echo "Post Processing of FCEvecs Begin"
 ###############################
 
 # Reassign genStruc as boilerplate base calculation.  
-sed -i '' 's|\(genStruc \)[^ ]*|\1'"SMODES_${irrep}/dist_0/dist_0.abi"'|' "../$input_file"
+new_content="genstruc SMODES_${irrep}/dist_0/dist_0.abi"
+
+awk -v new="$new_content" '
+/genstruc/ {
+    print new
+    next
+}
+{print}
+' "../$input_file" > "../${input_file}.tmp" && mv "../${input_file}.tmp" "../$input_file"
+
 # Convert xred to xcart for human readability
 bash xredToxcart.sh "SMODES_${irrep}/dist_0/dist_0.abi"
 

@@ -39,7 +39,8 @@ cp flpz_code/loop_smodes.tcsh "$dir"/.
 cp flpz_code/smodes_postproc_abinit.py "$dir"/.
 cp flpz_code/eigVecExt.sh "$dir"/.
 cp flpz_code/datapointCalcofEnergy.sh "$dir"/.
-cp flpz_code/dataAnalysis.sh "$dir"/.
+cp flpz_code/dataAnalysisEnergy.sh "$dir"/.
+cp flpz_code/xredToxcart.sh "$dir"/.
 
 # Generation of boilerplate for Prof. Ritz's code
 bash "$dir"/boilerplate_generation.sh "$input_file"
@@ -109,8 +110,17 @@ echo "Post Processing of FCEvecs Begin"
 #  Post Processing of FCEvecs #
 ###############################
 
-# Reassign genStruc as boilerplate base calculation.  
-sed -i '' 's|\(genStruc \)[^ ]*|\1'"${dir}/SMODES_${irrep}/dist_0/dist_0.abi"'|' "../$input_file"
+# Reassign genStruc as boilerplate base calculation. 
+new_content="genstruc SMODES_${irrep}/dist_0/dist_0.abi"
+
+awk -v new="$new_content" '
+/genstruc/ {
+    print new
+    next
+}
+{print}
+' "../$input_file" > "../${input_file}.tmp" && mv "../${input_file}.tmp" "../$input_file"
+
 # Convert xred to xcart for human readability 
 bash xredToxcart.sh  "SMODES_${irrep}/dist_0/dist_0.abi"
 
