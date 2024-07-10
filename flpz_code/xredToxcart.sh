@@ -25,7 +25,9 @@ xred=$(awk '/^xred[[:space:]]*$/ {for(i=1;i<='"$natom"';i++) {getline; if (NF==3
 # Perform the conversion using awk
 xcart=$(awk -v rprim="$rprim" -v xred="$xred" -v natom="$natom" '
 BEGIN {
-    print "\nCalculated xcart:"
+    split(rprim, r, /[[:space:]]+/)
+    split(xred, x, /[[:space:]]+/)
+    
     for (i = 1; i <= natom; i++) {
         xcart_x = x[3*i-2]*r[1] + x[3*i-1]*r[4] + x[3*i]*r[7]
         xcart_y = x[3*i-2]*r[2] + x[3*i-1]*r[5] + x[3*i]*r[8]
