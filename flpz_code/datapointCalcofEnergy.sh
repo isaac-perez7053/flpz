@@ -244,14 +244,6 @@ do
    mv ${structure}_${iteration}_vec${vecNum}.abo datapointAbiFiles
 done
 
-# Store DDB files
-mkdir DDBs
-for iteration in $(seq 0 "$num_datapoints")
-do
-   mv ${structure}_${iteration}_vec${vecNum}_DS4_DDB DDBs
-   mv ${structure}_${iteration}_vec${vecNum}_DS5_DDB DDBs 
-done
-
 for iteration in $(seq 0 "$num_datapoints")
 do
    rm ${structure}_${iteration}_vec*
