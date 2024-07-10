@@ -15,7 +15,7 @@ input_file="$1"
 structure=$(grep "name"  "$input_file" | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
 
 # File with the general (structural) information about the compound
-general_structure_file="../$(grep "genstruc" "$input_file" | awk '{print $2}')"
+general_structure_file="$(grep "genstruc" "$input_file" | awk '{print $2}')"
 
 ##fdf
 nproc=$(grep "nproc" "$input_file" | awk '{print $2}')
@@ -132,12 +132,14 @@ cat << EOF > "$filename_abi"
 # ${structure}: Flexoelectric Tensor Calculation #
 ##################################################
 
+ndtset 1
+
 # Ground State Self-Consistency
 #******************************
 
-getwfk 0
-kptopt 1
-tolvrs 1.0d-18
+getwfk1 0
+kptopt1 1
+tolvrs1 1.0d-18
 
 # turn off various file outputs, here we will be interested only the
 # DDB files  
@@ -225,7 +227,7 @@ echo "Data Analysis Begins"
 #Finish xpoints vector
 echo -e "];\n" >> "$xpoints"
 
-
+# Store abi and abo files
 mkdir datapointAbiFiles
 for iteration in $(seq 0 "$num_datapoints")
 do
@@ -233,13 +235,21 @@ do
 done 
 
 # Submit results to data analysis
-bash dataAnalysisEnergy.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure"
+bash dataAnalysisEnergy.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure" "$vecNum"
 
 echo "Data Analysis is Complete"
 
 for iteration in $(seq 0 "$num_datapoints")
 do
    mv ${structure}_${iteration}_vec${vecNum}.abo datapointAbiFiles
+done
+
+# Store DDB files
+mkdir DDBs
+for iteration in $(seq 0 "$num_datapoints")
+do
+   mv ${structure}_${iteration}_vec${vecNum}_DS4_DDB DDBs
+   mv ${structure}_${iteration}_vec${vecNum}_DS5_DDB DDBs 
 done
 
 for iteration in $(seq 0 "$num_datapoints")

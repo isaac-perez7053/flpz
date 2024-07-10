@@ -26,7 +26,7 @@ export PATH=/expanse/projects/qstore/use300/jpg/abinit-10.0.5/bin:$PATH
 # Storing inputs from input file
 ################################
 
-if [ "$#" -ne 4 ]; then
+if [ "$#" -ne 5 ]; then
     echo "Usage: $0 <arg1>"
     exit 1
 fi
@@ -36,12 +36,13 @@ input_fileAn="$1"
 xpoints="$2"
 inputAbo_files="$3"
 structure="$4"
+vecNum="$5"
 
 # Creation of output file
-output_file="Datasets.m"
+output_file="Datasets_vec${vecNum}.m"
 
 # Creation of totenergy vector file
-outputEn_file="totEnergy.m"
+outputEn_file="totEnergy_vec${vecNum}.m"
 echo "totEnergy_vec = [" >> "$outputEn_file"
 
 num_datapoints=$(sed -n '1p' "$input_fileAn")

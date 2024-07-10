@@ -25,18 +25,23 @@ xred=$(awk '/^xred[[:space:]]*$/ {for(i=1;i<='"$natom"';i++) {getline; if (NF==3
 # Perform the conversion using awk
 xcart=$(awk -v rprim="$rprim" -v xred="$xred" -v natom="$natom" '
 BEGIN {
-    split(rprim, r, /[ \n]/)
-    split(xred, x, /[ \n]/)
+    print "rprim array:"
+    split(rprim, r, /[[:space:]]+/)
+    for (i in r) if (r[i] != "") print i, r[i]
     
-    for (i = 1; i <= natom * 3; i += 3) {
-        xcart_x = x[i]*r[2] + x[i+1]*r[5] + x[i+2]*r[8]
-        xcart_y = x[i]*r[3] + x[i+1]*r[6] + x[i+2]*r[9]
-        xcart_z = x[i]*r[4] + x[i+1]*r[7] + x[i+2]*r[10]
+    print "\nxred array:"
+    split(xred, x, /[[:space:]]+/)
+    for (i in x) if (x[i] != "") print i, x[i]
+    
+    print "\nCalculated xcart:"
+    for (i = 1; i <= natom; i++) {
+        xcart_x = x[3*i-2]*r[1] + x[3*i-1]*r[4] + x[3*i]*r[7]
+        xcart_y = x[3*i-2]*r[2] + x[3*i-1]*r[5] + x[3*i]*r[8]
+        xcart_z = x[3*i-2]*r[3] + x[3*i-1]*r[6] + x[3*i]*r[9]
         printf "%.10f %.10f %.10f\n", xcart_x, xcart_y, xcart_z
     }
 }')
 
-echo "Calculated xcart:"
 echo "$xcart"
 
 if [ -z "$xcart" ]; then

@@ -15,7 +15,7 @@ input_file="$1"
 structure=$(grep "name"  "$input_file" | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
 
 # File with the general (structural) information about the compound
-general_structure_file="../$(grep "genstruc" "$input_file" | awk '{print $2}')"
+general_structure_file="$(grep "genstruc" "$input_file" | awk '{print $2}')"
 
 ##fdf
 nproc=$(grep "nproc" "$input_file" | awk '{print $2}')
@@ -277,13 +277,21 @@ do
 done 
 
 # Submit results to data analysis
-bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure"
+bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure" "$vecNum"
 
 echo "Data Analysis is Complete"
 
 for iteration in $(seq 0 "$num_datapoints")
 do
    mv ${structure}_${iteration}_vec${vecNum}.abo datapointAbiFiles
+done
+
+# Store DDB files
+mkdir DDBs
+for iteration in $(seq 0 "$num_datapoints")
+do
+   mv ${structure}_${iteration}_vec${vecNum}_DS4_DDB DDBs
+   mv ${structure}_${iteration}_vec${vecNum}_DS5_DDB DDBs
 done
 
 for iteration in $(seq 0 "$num_datapoints")
