@@ -1,4 +1,25 @@
 #!/bin/bash
+##############################
+
+# Takes output of datapoint calculations and 
+# automatically runs anaddb and stores output of
+# anaddb into final matlab file for plotting
+
+# Input: 
+# 1.) An output file from the datapoint calculation
+# listing all derivative database names. 
+# 2.) An output file from the datapoint calculation 
+# that is a matlab vector containing all calculated x points
+# 3.) An output file form the datapoint calculation containing
+# list of all abo file names for total energy vector. 
+# 4.) Name of structure as listed in the input file
+# 5.) The associated vector number of the calculation  
+
+# Output: 
+# 1.) A matlab file containing vectors of the flexoelectric,
+# piezoelectric, x points, and total energy of calculation. 
+
+##############################
 #SBATCH --job-name="abinit"
 #SBATCH --output="abinit.%j.%N.out"
 #SBATCH --partition=shared
@@ -51,6 +72,7 @@ num_datapoints=$(sed -n '1p' "$input_fileAn")
 ## Create anaddb files
 ######################
 
+# Write anaddb file for flexoelectric tensor
 anaddbF="flexoanaddb.abi"
 cat << EOF > "${anaddbF}"
 ! anaddb calculation of flexoelectric tensor
@@ -59,6 +81,7 @@ flexoflag 1
 
 EOF
 
+# Write anaddb file for piezoelectric tensor
 anaddbP="piezoanaddb.abi"
 cat <<EOF > "${anaddbP}"
 ! Input file for the anaddb code
@@ -68,7 +91,7 @@ piezoflag 3 !the flag for the piezoelectric constant
 instrflag 1 ! the flag for the internal strain tensor
 
 EOF
-
+# Store dataset file names and process files
 for dataset in $(seq 1 $(( num_datapoints + 1 )))
 do  
 	#Find dataset filename
@@ -86,6 +109,7 @@ do
 anaddbfilesF="anaddbF_${dataset}.files"
 anaddbfilesP="anaddbP_${dataset}.files"
 
+# Create anaddb file of files for flexoelectricity
 cat << EOF > "${anaddbfilesF}"
 ${anaddbF}
 flexoElec_${dataset}
@@ -96,6 +120,7 @@ dummy3
 
 EOF
 
+# Create anaddb file of files for piezoelectricty 
 cat << EOF > "${anaddbfilesP}"
 ${anaddbP}
 piezoElec_${dataset}
@@ -112,6 +137,7 @@ mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np 1 anaddb 
 
 done
 
+# After mpiruns are finixed, search for tensors and store in final output file
 for dataset in $(seq 1 $(( num_datapoints + 1 )))
 do
 
@@ -136,6 +162,7 @@ echo "];" >> "$outputEn_file"
 cat "$xpoints" >> "$output_file"
 cat "$outputEn_file" >> "$output_file"
 
+# Delete any extraneous files 
 echo "Cleaning Up Some Files for You"
 rm "${anaddbfilesF}" "${anaddbfilesP}" "${anaddbP}" "${anaddbF}"
 rm anaddb*

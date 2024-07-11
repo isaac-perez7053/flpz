@@ -1,4 +1,24 @@
 #!/bin/bash
+##############################
+
+# Takes output of datapoint calculations and 
+# calculated on the total energy of the perturbed system
+
+# Input: 
+# 1.) An output file from the datapoint calculation
+# listing all derivative database names. 
+# 2.) An output file from the datapoint calculation 
+# that is a matlab vector containing all calculated x points
+# 3.) An output file form the datapoint calculation containing
+# list of all abo file names for total energy vector. 
+# 4.) Name of structure as listed in the input file
+# 5.) The associated vector number of the calculation  
+
+# Output: 
+# 1.) A matlab file containing vectors of the flexoelectric,
+# piezoelectric, x points, and total energy of calculation. 
+
+##############################
 #SBATCH --job-name="abinit"
 #SBATCH --output="abinit.%j.%N.out"
 #SBATCH --partition=shared
@@ -46,13 +66,14 @@ outputEn_file="totEnergy_${vecNum}.m"
 echo "totEnergy_vec = [" >> "$outputEn_file"
 
 num_datapoints=$(sed -n '1p' "$input_fileAn")
-#Search for totenergy and store
+
+#Search for total energy and store
 for dataset in $(seq 1 $(( num_datapoints + 1 )))
 do
    echo "$(grep "etotal1" "$(sed -n "${dataset}p" "$inputAbo_files")" |awk '{print $2}')" >> "$outputEn_file"
 done
 
-# Combines the x_vec with the flexoElectricity matricies
+# Combine the x point vector with the total energy vector for final output
 echo "];" >> "$outputEn_file"
 cat "$xpoints" >> "$output_file"
 cat "$outputEn_file" >> "$output_file"

@@ -1,7 +1,22 @@
 #!/bin/bash
 ## Check if the correct number of arguments are provided
 # Storing inputs from input file
-################################
+######################################
+
+# Calculates the total energy of the 
+# perturbed system for the flpz program. 
+
+# Inputs: 
+# 1.) An input file that was the output of eigVecExt.sh that contains the 
+# eigen vector displacement. 
+
+# Outputs: 
+# 1.) A file containing the x point vector of the perturbed system. 
+# 2.) A file containing a list of the derivative data base names for 
+# dataAnalysisEnergy.sh 
+# 3.) A file containign a list of abo files for dataAnalysisEnergy.sh. 
+
+######################################
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <arg1>"

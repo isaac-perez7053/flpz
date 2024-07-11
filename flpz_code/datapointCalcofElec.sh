@@ -1,8 +1,22 @@
 #!/bin/bash
 ## Check if the correct number of arguments are provided
 # Storing inputs from input file
-################################
+######################################
 
+# Calculates the flexoelectricity and piezoelectricity of the 
+# perturbed system for the flpz program. 
+
+# Inputs: 
+# 1.) An input file that was the output of eigVecExt.sh that contains the 
+# eigen vector displacement. 
+
+# Outputs: 
+# 1.) A file containing the x point vector of the perturbed system. 
+# 2.) A file containing a list of the derivative data base names for 
+# dataAnalysis.sh 
+# 3.) A file containign a list of abo files for dataAnalysis.sh. 
+
+######################################
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <arg1>"
     exit 1
@@ -294,6 +308,7 @@ do
    mv ${structure}_${iteration}_vec${vecNum}_DS5_DDB DDBs
 done
 
+# Remove all WFK and DEN files
 for iteration in $(seq 0 "$num_datapoints")
 do
    rm ${structure}_${iteration}_vec*

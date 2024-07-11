@@ -1,5 +1,19 @@
 #!/bin/bash 
- 
+##############################
+
+# Creates the boilerplate, a dependency for the 
+# SMODES calculation. 
+
+# Inputs: 
+# 1.) The input file of the flpz program
+
+# Outputs: 
+# 1.) A directory named boilerplate that will hold 
+# many dependencies for the SMODES calculation and 
+# will also hold the new general structure file for 
+# datapoint calculations
+
+############################## 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <arg1>"
     exit 1
@@ -72,6 +86,7 @@ mv "${script}" boilerplate
 # cp general_structure.abi to boilerplate #
 ###########################################
 
+# Copy general structure file into boilerplate and remove natom, ntypat, acell, typat, and znucl
 cp $general_structure_file boilerplate/template.abi 
 sed -i '/acell/c\CELLDEF' boilerplate/template.abi 
 sed -i '/natom/d' "boilerplate/template.abi"
@@ -79,6 +94,7 @@ sed -i '/ntypat/d' "boilerplate/template.abi"
 sed -i '/typat/d' "boilerplate/template.abi"
 sed -i '/znucl/d' "boilerplate/template.abi"
 
+# Checks if rprim, xred, and xcart are defined and if they are defind, remove them from file. 
 if grep -q "^[[:space:]]*rprim" boilerplate/template.abi; then
    rprim_location=$(grep -n "rprim" "boilerplate/template.abi" | cut -d: -f1)
    rprim_start=$(( rprim_location  ))
