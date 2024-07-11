@@ -1,4 +1,23 @@
 #!/bin/bash
+########################################
+
+# Takes the rprim, acell, and xred coordinates 
+# and calcuates and replaces xred with the 
+# cartesian coordinates of the crystal. 
+
+# Input: 
+# 1.) An abi file that contains a defined xred, rprim, and acell. 
+# Please ensure all variables are set up like: 
+# rprim  Variable name
+# 1 0 0  Vectors
+# 0 1 0 
+# 0 0 1
+
+# Output: 
+# 2.) An abi file with the original rprim and acell but with the 
+# calculated xcart. 
+
+########################################
 
 set -e  # Exit immediately if a command exits with a non-zero status.
 
@@ -22,12 +41,12 @@ acell=$(grep "acell" "$input_file")
 # Extract xcart coordinates
 xred=$(awk '/^xred[[:space:]]*$/ {for(i=1;i<='"$natom"';i++) {getline; if (NF==3) print}}' "$input_file")
 
-# Perform the conversion using awk
+# Perform the conversion from reduced coordinates to cartesian coordinatex
 xcart=$(awk -v rprim="$rprim" -v xred="$xred" -v natom="$natom" '
 BEGIN {
     split(rprim, r, /[[:space:]]+/)
     split(xred, x, /[[:space:]]+/)
-    
+
     for (i = 1; i <= natom; i++) {
         xcart_x = x[3*i-2]*r[1] + x[3*i-1]*r[4] + x[3*i]*r[7]
         xcart_y = x[3*i-2]*r[2] + x[3*i-1]*r[5] + x[3*i]*r[8]
@@ -46,7 +65,8 @@ fi
 # Create a temporary file
 temp_file=$(mktemp)
 
-# Process the file and write to the temporary file
+# Process the file and write to the temporary file with original rprim and acell and 
+# newly calculated xcart. 
 awk -v xcart="$xcart" -v rprim="$rprim" -v acell="$acell" '
 /xred/,/^$/ {
     if ($0 ~ /xred/) {
