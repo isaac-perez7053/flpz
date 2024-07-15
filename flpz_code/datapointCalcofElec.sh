@@ -1,149 +1,107 @@
 #!/bin/bash
-## Check if the correct number of arguments are provided
-# Storing inputs from input file
-######################################
+# Flexoelectricity and Piezoelectricity Calculation for Perturbed Systems
+# Usage: ./datapointCalcofElec.sh <input_file>
 
-# Calculates the flexoelectricity and piezoelectricity of the 
-# perturbed system for the flpz program. 
+# Function to check correct number of arguments
+check_args() {
+    if [ "$#" -ne 1 ]; then
+        echo "Usage: $0 <input_file>"
+        exit 1
+    fi
+}
 
-# Inputs: 
-# 1.) An input file that was the output of eigVecExt.sh that contains the 
-# eigen vector displacement. 
+# Function to read input parameters
+read_input_params() {
+    local input_file="$1"
+    structure=$(grep "name" "$input_file" | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
+    general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
+    nproc=$(grep "nproc" "$input_file" | awk '{print $2}')
+    vecNum=$(grep "vecNum" "$input_file" | awk '{print $2}')
+    num_datapoints=$(grep "num_datapoints" "$input_file" | awk '{print $2}')
+    max=$(grep "max" "$input_file" | awk '{print $2}')
+    min=$(grep "min" "$input_file" | awk '{print $2}')
+}
 
-# Outputs: 
-# 1.) A file containing the x point vector of the perturbed system. 
-# 2.) A file containing a list of the derivative data base names for 
-# dataAnalysis.sh 
-# 3.) A file containign a list of abo files for dataAnalysis.sh. 
+# Function to calculate step size
+calc_step_size() {
+    echo "scale=10; ($max-$min)/$num_datapoints" | bc
+}
 
-######################################
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <arg1>"
-    exit 1
-fi
+# Function to initialize output files
+init_output_files() {
+    xpoints="xpoints${structure}_vec$vecNum.m"
+    datasets_file="datasets_file${structure}_vec$vecNum.in"
+    datasetsAbo_file="datasetsAbo_vec$vecNum.in"
 
-## Read the command line arguments
-input_file="$1"
+    echo "%x displacement vector magnitude" > "$xpoints"
+    echo "x_vec = [" >> "$xpoints"
+    echo "$num_datapoints" > "$datasets_file"
+    : > "$datasetsAbo_file"
+}
 
-## Root of all files input: searches for name in file and translates from upper to lowercase
-structure=$(grep "name"  "$input_file" | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
+# Function to extract and normalize eigenvector displacements
+extract_normalize_eigdisp() {
+    local input_file="$1"
+    local mode_location=$(grep -n "eigen_disp" "$input_file" | cut -d: -f1)
+    local begin_mode=$((mode_location + 1))
+    local end_mode=$((begin_mode + $(grep "natom" "$general_structure_file" | awk '{print $2}') - 1))
+    
+    eig_disp=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+    eigdisp_array=($eig_disp)
+    
+    local eig_squaresum=0
+    for eig_component in "${eigdisp_array[@]}"; do
+        eig_squaresum=$(echo "scale=15; $eig_component^2 + $eig_squaresum" | bc)
+    done
+    local normfact=$(echo "scale=15; sqrt($eig_squaresum)" | bc)
+    
+    for i in "${!eigdisp_array[@]}"; do
+        eigdisp_array[i]=$(echo "scale=15; ${eigdisp_array[i]}/$normfact" | bc)
+    done
+}
 
-# File with the general (structural) information about the compound
-general_structure_file="$(grep "genstruc" "$input_file" | awk '{print $2}')"
+# Function to create perturbed system files
+create_perturbed_files() {
+    local iteration="$1"
+    local filename="${structure}_${iteration}_vec$vecNum"
+    local filename_abi="${filename}.abi"
+    
+    echo "${structure}_${iteration}_vec${vecNum}o_DS4_DDB" >> "$datasets_file"
+    echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >> "$datasets_file"
+    echo "${filename}.abo" >> "$datasetsAbo_file"
+    
+    # Extract and perturb cartesian coordinates
+    local xcart_location=$(grep -n "xcart" "$general_structure_file" | cut -d: -f1)
+    local xcart_start=$((xcart_location + 1))
+    local xcart_end=$((xcart_start + $(grep "natom" "$general_structure_file" | awk '{print $2}') - 1))
+    local xcart=$(sed -n "${xcart_start},${xcart_end}p" "$general_structure_file")
+    
+    local count=0
+    local nxcart_array=()
+    for component in $xcart; do
+        local eig_dispcomp="${eigdisp_array[$count]}"
+        local cstep_size=$(echo "scale=15; ${step_size} * ${iteration}" | bc)
+        local perturbation=$(echo "scale=15; ${eig_dispcomp} * ${cstep_size}" | bc)
+        nxcart_array+=("$(echo "scale=15; ${component} + ${perturbation}" | bc)")
+        count=$((count + 1))
+    done
+    
+    echo "$cstep_size" >> "$xpoints"
+    
+    # Create ABINIT input file
+    create_abinit_input "$filename_abi" "${nxcart_array[@]}"
+    
+    # Create and submit batch script
+    create_batch_script "$filename" "$filename_abi"
+}
 
-##fdf
-nproc=$(grep "nproc" "$input_file" | awk '{print $2}')
-
-##Grab vector iteration
-vecNum=$(grep "vecNum" "$input_file" | awk '{print $2}')
-
-##Number of datapoints including the max and min specified 
-num_datapoints=$(grep "num_datapoints" "$input_file" | awk '{print $2}')
-max=$(grep "max" "$input_file" | awk '{print $2}')
-min=$(grep "min" "$input_file" | awk '{print $2}')
-
-#Find step sizes 
-step_size=$(echo "scale=10; ($max-$min)/$num_datapoints" | bc)
-
-#Initalize a file that stores the xpoints
-xpoints="xpoints${structure}_vec$vecNum.m"
-echo "%x displacement vector magnitude" >> "$xpoints"
-echo "x_vec = [" >> "$xpoints"
-
-#Initialize the input file for data analysis
-datasets_file="datasets_file${structure}_vec$vecNum.in"
-echo "$num_datapoints" >> "$datasets_file"
-
-#Initialize the input file that stores name of abo files
-datasetsAbo_file="datasetsAbo_vec$vecNum.in"
-
-## Define original xcart and eig_disp
-## Extract matrix from file and normalize components
-mode_location=$(grep -n "eigen_disp" "$input_file" | cut -d: -f1)
-begin_mode=$(( mode_location+1 ))
-end_mode=$(( mode_location+$(grep "natom" "$general_structure_file" | awk '{print $2}') ))
-## Extract lines from begin_mode to end_mode and normalize in the process 
-eig_disp=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
-
-##############################################
-# Calculation of normalized eigendisplacements
-##############################################
-
-# Initialize an empty array 
-eigdisp_array=()
-
-# Use a while loop to read each domain into the array
-   for eig_component in ${eig_disp}
-   do
-      eigdisp_array+=("$eig_component")
-   done
-
-eig_squaresum=0
-#NORMALIZATION of eigenvectors
-   #Calculation of normalization factor
-   for eig_component in "${eigdisp_array[@]}"
-   do
-      eig_squaresum=$(echo "scale=15; $eig_component^2 + $eig_squaresum" |bc)
-   done
-   normfact=$(echo "scale=15; sqrt($eig_squaresum)" | bc )
-   #Divide all elements in the array by the normfact
-   for eig_component in $(seq 0 $(( ${#eigdisp_array[@]} - 1 )))
-   do
-     eigdisp_array[eig_component]=$(echo "scale=15; ${eigdisp_array[$eig_component]}/$normfact" | bc)
-   done
-
-#Creation of PID array
-pids=()
-
-#####################################
-# Creation of perturbation and files
-#####################################
-
-## Beginning of for loop that will create a file for each datapoint 
-for iteration in $(seq 0 "$num_datapoints")
-do
-   ## Extract the cartesian coordinates of the crystal system
-   xcart_location=$(grep -n "xcart" "$general_structure_file" | cut -d: -f1)
-   xcart_start=$(( xcart_location+1 ))
-   xcart_end=$(( xcart_location+$(grep "natom" "$general_structure_file" | awk '{print $2}') ))
-   ## Extract lines from xcart_start to xcart_end
-   xcart=$(sed -n "${xcart_start},${xcart_end}p" "$general_structure_file")
-
- ## Name the to-be-generated file
-   filename="${structure}_${iteration}_vec$vecNum"
-   filename_abi="${filename}.abi"
-
-
- ## Update datasets_file 
-   echo "${structure}_${iteration}_vec${vecNum}o_DS4_DDB" >> "$datasets_file"
-   echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >> "$datasets_file"
-   echo "${structure}_${iteration}_vec${vecNum}.abo" >> "$datasetsAbo_file"
-   
-######################################
-# Add the perturbation into the system
-######################################
-
-# Initializing a counter
-count=0
-
-# Intialize an empty array for new xcart
-nxcart_array=()
-
-   for component in ${xcart};
-   do
-      eig_dispcomp="${eigdisp_array[$count]}"
-      cstep_size=$(echo "scale=15; ${step_size} * ${iteration}" | bc)
-      perturbation=$(echo "scale=15; ${eig_dispcomp} * ${cstep_size}" | bc)
-      nxcart_array+=("$(echo "scale=15; ${component} + ${perturbation}" | bc)")
-      count=$(( count + 1 ))
-   done
-
-# Update xpoints
-echo -e "$cstep_size\n" >> "$xpoints"
-
-
-
-cat << EOF > "$filename_abi"
+# Function to create ABINIT input file
+create_abinit_input() {
+    local filename_abi="$1"
+    shift
+    local nxcart_array=("$@")
+    
+    cat << EOF > "$filename_abi"
 ##################################################
 # ${structure}: Flexoelectric Tensor Calculation #
 ##################################################
@@ -169,71 +127,70 @@ tolwfr2 1.0d-20
 
 getddk3 2
 iscf3 -3
-rf2_dkdk3 3            # Response fucntion 2nd derv. of wavefunctions w.r.r. K
-tolwfr3 1.0d-16        # ==3 the total symmetric plus antisymmetric response is activated
-rf2_pert1_dir3 1 1 1  #Response function (2nd order Sternheimer equation: 1st and 2nd pert. direction.
-rf2_pert2_dir3 1 1 1  #Gives the directions of the 1st perturbation to be considered when solving the 2nd
-                      #order Stern. eq. Elements responsd to three prim. vectors.
-
+rf2_dkdk3 3
+tolwfr3 1.0d-16
+rf2_pert1_dir3 1 1 1
+rf2_pert2_dir3 1 1 1
 
 # Set 4: Response function calculation to q=0 phonons, electric field and strain
 #*******************************************************************************
 getddk4 2
-rfelfd4 3              #Response function w.r.t electric field
-rfphon4 1              #Respones function w.r.t phonons
-rfstrs4 3              #Response function w.r.t strain
-rfstrs_ref4 1          #Response fucntion w.r.t strains with energy reference at average
-tolvrs4 1.0d-8         #electrostatic potential
-prepalw4 1             #Prepares longwave calculation for flexoelectric constant
+rfelfd4 3
+rfphon4 1
+rfstrs4 3
+rfstrs_ref4 1
+tolvrs4 1.0d-8
+prepalw4 1
 
 # Set 5: Long-wave Calculations
 #******************************
 
-optdriver5 10          #Longwave response fucntion
-get1wf5 4              #Grab all preceeding information.
+optdriver5 10
+get1wf5 4
 get1den5 4
 getddk5 2
 getdkdk5 3
-lw_flexo5 1            #Longwave calculation of flexoelectricity related spatial dispersion tensors
+lw_flexo5 1
 
-
-# turn off various file outputs, here we will be interested only the
-# DDB files  
-   prtpot 0
-   prteig 0
+# turn off various file outputs
+prtpot 0
+prteig 0
 
 EOF
 
-## Add general info about the structure
-   cat "$general_structure_file" >> "$filename_abi"
+    # Add general info about the structure
+    cat "$general_structure_file" >> "$filename_abi"
 
-## Replaces old xcart with the new xcart
-#######################################
-   xcart_location=$(grep -n "xcart" "$filename_abi" | cut -d: -f1)
-   xcart_start=$(( xcart_location  ))
-   xcart_end=$(( xcart_location+$(grep "natom" "$general_structure_file" | awk '{print $2}') ))
-   sed "$xcart_start,${xcart_end}d" "$filename_abi" > "tmpfile.abi" && mv "tmpfile.abi" "$filename_abi"
-   #Construct matrix line and input in file
-   echo "xcart" >> "$filename_abi" 
-   for (( i=0; i<${#nxcart_array[@]}; i+=3 ))
-   do
-      line="${nxcart_array[$i]} ${nxcart_array[$(( i+1))]} ${nxcart_array[$(( i+2))]}"
-      echo "${line}" >> "$filename_abi"
-   done
+    # Replace xcart with new perturbed coordinates
+    local xcart_location=$(grep -n "xcart" "$filename_abi" | cut -d: -f1)
+    local xcart_start=$xcart_location
+    local xcart_end=$((xcart_start + $(grep "natom" "$general_structure_file" | awk '{print $2}')))
+    sed -i "${xcart_start},${xcart_end}d" "$filename_abi"
+    echo "xcart" >> "$filename_abi"
+    for ((i=0; i<${#nxcart_array[@]}; i+=3)); do
+        echo "${nxcart_array[i]} ${nxcart_array[i+1]} ${nxcart_array[i+2]}" >> "$filename_abi"
+    done
 
-## Writes the batch script
-##########################
 
-   script="b-script-${structure}_${iteration}"
+    # If this is the first perturbation, print the space group
+    if [[ $iteration -eq 1 ]]; then 
+        echo "The space group of the perturbed cell is $(bash findSpaceGroup.sh $filename_abi)"
+    fi 
+}
 
-cat << EOF > "${script}"
+# Function to create and submit batch script
+create_batch_script() {
+    local filename="$1"
+    local filename_abi="$2"
+    local script="b-script-${filename}"
+    
+    cat << EOF > "${script}"
 #!/bin/bash
 #SBATCH --job-name=abinit
 #SBATCH --partition=shared
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=${nproc}
 #SBATCH --cpus-per-task=1
-##Change this to your allocation ID
 #SBATCH --account=crl174
 #SBATCH --mem=64G
 #SBATCH --time=23:59:59
@@ -251,65 +208,53 @@ module load fftw/3.3.10
 module load netlib-scalapack/2.1.0
 export PATH=/expanse/projects/qstore/use300/jpg/abinit-10.0.5/bin:$PATH
 
-#SET the number of openmp threads
 export OMP_NUM_THREADS=24
 
-
 mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np ${nproc} abinit ${filename_abi} >& ${filename}.log
-
 EOF
 
-#submit script and add to PIDS array
-job_id=$(sbatch "${script}" | awk '{print $4}')
-job_ids+=($job_id)
-echo "Submitted batch job $job_id"
-rm "${script}"
+    local job_id=$(sbatch "${script}" | awk '{print $4}')
+    job_ids+=($job_id)
+    echo "Submitted batch job $job_id"
+    rm "${script}"
+}
 
-done
-
-
-# Wait for all jobs to finish before data analysis
-for job_id in "${job_ids[@]}"; do
-    squeue -h -j "$job_id"
-    while [ $? -eq 0 ]; do
-        sleep 600  # Check every 10 minutes
-        squeue -h -j "$job_id"
+# Function to wait for all jobs to complete
+wait_for_jobs() {
+    for job_id in "${job_ids[@]}"; do
+        while squeue -h -j "$job_id" &>/dev/null; do
+            sleep 600  # Check every 10 minutes
+        done
+        echo "Job $job_id completed"
     done
-    echo "Job $job_id completed"
+    echo "All Batch Scripts have Completed."
+}
+
+# Main execution
+check_args "$@"
+read_input_params "$1"
+step_size=$(calc_step_size)
+init_output_files
+extract_normalize_eigdisp "$1"
+
+job_ids=()
+for iteration in $(seq 0 "$num_datapoints"); do
+    create_perturbed_files "$iteration"
 done
-echo "All Batch Scripts have Completed."
+
+wait_for_jobs
+
 echo "Data Analysis Begins"
+echo "];" >> "$xpoints"
 
-#Finish xpoints vector
-echo -e "];\n" >> "$xpoints"
-
-
-mkdir datapointAbiFiles
-for iteration in $(seq 0 "$num_datapoints")
-do
-   mv ${structure}_${iteration}_vec${vecNum}.abi datapointAbiFiles
-done 
-
-# Submit results to data analysis
+# Organize files
+mkdir -p datapointAbiFiles DDBs
+mv ${structure}_*_vec${vecNum}.abi datapointAbiFiles/
 bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure" "$vecNum"
-
 echo "Data Analysis is Complete"
 
-for iteration in $(seq 0 "$num_datapoints")
-do
-   mv ${structure}_${iteration}_vec${vecNum}.abo datapointAbiFiles
-done
+mv ${structure}_*_vec${vecNum}.abo datapointAbiFiles/
+mv ${structure}_*_vec${vecNum}_DS4_DDB ${structure}_*_vec${vecNum}_DS5_DDB DDBs/
+rm ${structure}_*_vec*
 
-# Store DDB files
-mkdir DDBs
-for iteration in $(seq 0 "$num_datapoints")
-do
-   mv ${structure}_${iteration}_vec${vecNum}_DS4_DDB DDBs
-   mv ${structure}_${iteration}_vec${vecNum}_DS5_DDB DDBs
-done
-
-# Remove all WFK and DEN files
-for iteration in $(seq 0 "$num_datapoints")
-do
-   rm ${structure}_${iteration}_vec*
-done
+echo "Flexoelectricity and Piezoelectricity calculation completed successfully."

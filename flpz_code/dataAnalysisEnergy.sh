@@ -1,24 +1,10 @@
 #!/bin/bash
-##############################
 
-# Takes output of datapoint calculations and 
-# calculated on the total energy of the perturbed system
+# dataAnalysisEnergy.sh
+# Analyzes the total energy of the perturbed system from datapoint calculations
 
-# Input: 
-# 1.) An output file from the datapoint calculation
-# listing all derivative database names. 
-# 2.) An output file from the datapoint calculation 
-# that is a matlab vector containing all calculated x points
-# 3.) An output file form the datapoint calculation containing
-# list of all abo file names for total energy vector. 
-# 4.) Name of structure as listed in the input file
-# 5.) The associated vector number of the calculation  
+# Usage: ./dataAnalysisEnergy.sh <derivative_db_file> <x_points_file> <abo_files_list> <structure_name> <vector_number>
 
-# Output: 
-# 1.) A matlab file containing vectors of the flexoelectric,
-# piezoelectric, x points, and total energy of calculation. 
-
-##############################
 #SBATCH --job-name="abinit"
 #SBATCH --output="abinit.%j.%N.out"
 #SBATCH --partition=shared
@@ -30,60 +16,50 @@
 #SBATCH --export=ALL
 #SBATCH -t 23:59:59
 
+# Load required modules
 module purge
-module load slurm
-module load cpu/0.17.3b
-module load gcc/10.2.0
-module load openmpi/4.1.3
-module load wannier90/3.1.0
-module load netcdf-fortran/4.5.3
-module load libxc/5.1.5
-module load fftw/3.3.10
-module load netlib-scalapack/2.1.0
+module load slurm cpu/0.17.3b gcc/10.2.0 openmpi/4.1.3 wannier90/3.1.0 netcdf-fortran/4.5.3 libxc/5.1.5 fftw/3.3.10 netlib-scalapack/2.1.0
+
+# Add Abinit to PATH
 export PATH=/expanse/projects/qstore/use300/jpg/abinit-10.0.5/bin:$PATH
 
-## Check if the correct number of arguments are provided
-# Storing inputs from input file
-################################
-
+# Check if the correct number of arguments are provided
 if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 <arg1>"
+    echo "Usage: $0 <derivative_db_file> <x_points_file> <abo_files_list> <structure_name> <vector_number>"
     exit 1
 fi
 
-## Read the command line arguments
-input_fileAn="$1"
-xpoints="$2"
-inputAbo_files="$3"
-structure="$4"
-vecNum="$5"
+# Read the command line arguments
+derivative_db_file="$1"
+x_points_file="$2"
+abo_files_list="$3"
+structure_name="$4"
+vector_number="$5"
 
-# Creation of output file
-output_file="Datasets_vec${vecNum}.m"
+# Set up output files
+output_file="Datasets_vec${vector_number}.m"
+energy_output_file="totEnergy_${vector_number}.m"
 
-# Creation of totenergy vector file
-outputEn_file="totEnergy_${vecNum}.m"
-echo "totEnergy_vec = [" >> "$outputEn_file"
+# Initialize total energy vector
+echo "totEnergy_vec = [" > "$energy_output_file"
 
-num_datapoints=$(sed -n '1p' "$input_fileAn")
+# Get number of datapoints
+num_datapoints=$(sed -n '1p' "$derivative_db_file")
 
-#Search for total energy and store
-for dataset in $(seq 1 $(( num_datapoints + 1 )))
-do
-   echo "$(grep "etotal1" "$(sed -n "${dataset}p" "$inputAbo_files")" |awk '{print $2}')" >> "$outputEn_file"
+# Extract and store total energy for each dataset
+for dataset in $(seq 1 $((num_datapoints + 1))); do
+    abo_file=$(sed -n "${dataset}p" "$abo_files_list")
+    etotal=$(grep "etotal1" "$abo_file" | awk '{print $2}')
+    echo "$etotal" >> "$energy_output_file"
 done
 
-# Combine the x point vector with the total energy vector for final output
-echo "];" >> "$outputEn_file"
-cat "$xpoints" >> "$output_file"
-cat "$outputEn_file" >> "$output_file"
+# Finalize total energy vector
+echo "];" >> "$energy_output_file"
 
-echo "Cleaning Up Some Files for You"
-#rm $inputAbo_files
-#rm $input_fileAn
-#rm $xpoints
+# Combine x points and total energy vectors in final output
+cat "$x_points_file" "$energy_output_file" > "$output_file"
 
-rm "fort.7"
-rm "output.log"
+echo "Cleaning up temporary files..."
+rm -f "fort.7" "output.log"
 
-
+echo "Analysis complete. Results saved in $output_file"

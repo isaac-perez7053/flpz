@@ -188,7 +188,7 @@ h.write("NumAtomTypes: "+str(len(typeList))+"\n")
 h.write("NumAtoms: "+str(numAtoms)+"\n")
 h.write("DispMag(angstrom): "+str(dispMag)+"\n")
 for i in range(len(typeList)):
-    h.write(typeList[i]+" "+str(int(typeCount[i]))+str(atomicMassList[i])+"\n")
+      h.write(f"{typeList[i]} {int(typeCount[i])} {atomicMassList[i]}\n")
 
 distMat=np.zeros((numAtoms,3,numModes+1))
 modeInd=1

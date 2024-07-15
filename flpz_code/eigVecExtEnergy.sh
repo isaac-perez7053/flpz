@@ -1,64 +1,67 @@
 #!/bin/bash 
-################################
+
+# Eigenvalue Vector Extraction for Energy Calculations
+# Extracts unstable phonon modes and creates input files with eigenvectors
+
+# Usage: ./eigVecExtEnergy.sh <dynFreqs_file> <fceVecs_file> <input_file>
 
 if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <arg1>"
+    echo "Usage: $0 <dynFreqs_file> <fceVecs_file> <input_file>"
     exit 1
 fi
 
-######################################################
-# Read input files and calculate constant quantities #
-######################################################
-
-
-## Read the command line arguments
 dynFreqs_file="$1"
 fceVecs_file="$2"
 input_file="$3"
 
-####################################
-# Check which vectors are unstable #
-####################################
+# Remove the first line of dynFreqs_file (assumed to be a header)
+sed '1d' "$dynFreqs_file" > "tmpfile.abi" && mv "tmpfile.abi" "$dynFreqs_file"
 
-sed '1d' "$dynFreqs_file" > "tmpfile.abi" && mv "tmpfile.abi" "$dynFreqs_file" 
-# Check if the phonon is unstable and not acoustic
-eigVec_lines=$(awk '
-    {
-        if ($1 ~ /-/ || $2 ~ /-/) {
-            if ($2 < -20) {
-                print NR
+# Find unstable phonons (excluding acoustic modes)
+find_unstable_phonons() {
+    awk '
+        {
+            if ($1 ~ /-/ || $2 ~ /-/) {
+                if ($2 < -20) {
+                    print NR
+                }
             }
         }
-    }
-' "$dynFreqs_file")
-eigVec_nlines=$(echo "$eigVec_lines" | wc -l )
-eigVec_nlines="${eigVec_nlines#"${eigVec_nlines%%[![:space:]]*}"}" 
-echo "There are "$eigVec_nlines" unstable phonons" 
+    ' "$dynFreqs_file"
+}
 
-#####################################
-# Create input files with eigenVecs #
-#####################################
+eigVec_lines=$(find_unstable_phonons)
+eigVec_nlines=$(echo "$eigVec_lines" | wc -w)
 
-for files in $eigVec_lines
-do
-   cp "../$input_file" "${input_file}_vec${files}"
-   echo -e "vecNum ${files}" >> "${input_file}_vec${files}"
-   eigVec=$(sed -n "${files}p" "$fceVecs_file")
-   echo "eigen_disp" >> "${input_file}_vec${files}"
-   eigVec_arr=()
-   #Input eigVec into array
-   for eigVec in ${eigVec}
-   do
-      eigVec_arr+=("$eigVec")  
-   done
-   #Construct matrix line and input in file 
-   for (( i=0; i<${#eigVec_arr[@]}; i+=3 ))
-   do
-      line="${eigVec_arr[i]} ${eigVec_arr[$(( i+1))]} ${eigVec_arr[$(( i+2))]}"
-      echo "${line}" >> "${input_file}_vec${files}"  
-   done 
-done 
+echo "There are $eigVec_nlines unstable phonons"
 
-echo "eigVec_nlines $eigVec_nlines" >> "../$input_file"
-echo -e "eigVec_lines\n${eigVec_lines}" >> "../$input_file"
-  
+# Create input files with eigenvectors
+create_input_files() {
+    local file_num=$1
+    local output_file="${input_file}_vec${file_num}"
+    
+    cp "$input_file" "$output_file"
+    echo "vecNum ${file_num}" >> "$output_file"
+    echo "eigen_disp" >> "$output_file"
+    
+    sed -n "${file_num}p" "$fceVecs_file" | 
+    awk '{
+        for (i=1; i<=NF; i+=3) {
+            print $i, $(i+1), $(i+2)
+        }
+    }' >> "$output_file"
+}
+
+for file_num in $eigVec_lines; do
+    create_input_files "$file_num"
+done
+
+# Update the original input file with eigenvector information
+{
+    echo "eigVec_nlines $eigVec_nlines"
+    echo "eigVec_lines"
+    echo "$eigVec_lines"
+} >> "$input_file"
+
+echo "Eigenvalue vector extraction for energy calculations completed successfully."
+
