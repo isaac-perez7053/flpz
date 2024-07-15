@@ -34,13 +34,6 @@ phonon points (e.g. GM or M)
 the piezoelectric and flexoeelctric tensor components. The x-point (amplitude) and total energy
 of each perturbed unit cell are included as vectors as well. 
 
-* Data Viewing *
-****************
-
-Matlab code is included to visualize the relationship between the piezoelectric and flexoelectric tensors as we perturbate the system. 
-To use the code, open matlab and specify where the datasets is outputted from the run. After that, run the matlab function and it will
-ask you what components of the tensors you want to plot. You can specify as many as you'd like within the given range. Finally, 
-note that mu matricies refer to the flexoelectric tensors and chi matricies refer to the piezoelectric tensors.
 
 
 * Final Note *
