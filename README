@@ -14,7 +14,8 @@ in place. You can calculate multiple datapoints for multiple amplitudes of the f
 **********
 
 1.) general_structure.abi: An abinit file that defines the crystal, k-point lattice, and any SCF procedure variables such as 
-tolerances and ecut. 
+tolerances and ecut. Two input files are included as examples. The default behavior of the script will calculate all unstables
+unless otherwise specifies, as shown in inputfile2.in. 
 
 2.) sInput.txt: A file that serves as the input to the smodes program on Isotropy. Written as:
 acell parameters
@@ -35,12 +36,15 @@ the piezoelectric and flexoeelctric tensor components. The x-point (amplitude) a
 of each perturbed unit cell are included as vectors as well. 
 
 
-
 * Final Note *
 **************
 
 An example of each input is included in the folder attached. Furthermore, all working code is in
 the flpz folder and the executable is flpzPert.sh. 
 
-Should be executed as: bash flpz.Pert.sh general_structure.abi sInput.txt irrep
+Should be executed as: bash flpzPert.sh inputfile.in sInput.txt irrep
+or bash flpzEnergy.sh inputfile.in sInput.txt irrep. 
+
+You should run flpzEnergy.sh to check whether you have hit an instability and see which phonons you want calculated before running the full
+calculation. The space group of the perturbed and unperturbed cell will be printed in the terminal or log. 
 
