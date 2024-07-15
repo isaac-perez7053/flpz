@@ -2,7 +2,7 @@
 function plot_totEnergy()
 
 % Run the script that defines the variables. DEFINE PATH
-run('../../../Downloads/Personal_Projects/abinit-9.10.3/perovskites/BaTiO3_Pm3m/flexoElec/Datasets.m');
+run('../../../Downloads/Personal_Projects/abinit-9.10.3/perovskites/CaTiO3_Pm3m/Datasets_vec1.m');
 
 % Check if the variables exist and have the same size
 if ~exist('x_vec', 'var') || ~exist('totEnergy_vec', 'var')

@@ -3,7 +3,7 @@ function plot_flexoElec()
 clc;
 
 % Run the script that defines the variables. DEFINE PATH
-run('../../../Downloads/Personal_Projects/abinit-9.10.3/perovskites/BaTiO3_Pm3m/flexoElec/Datasets.m');
+run('../../../Downloads/Personal_Projects/abinit-9.10.3/perovskites/CaTiO3_Pm3m/flexoElec/script/Datasets.m');
 
 % Check if x_vec exists
 if ~exist('x_vec', 'var')
@@ -12,6 +12,7 @@ end
 
 % Find all mu matrices
 mu_vars = who('mu*');
+mu_vars = sort_numeric(mu_vars);
 n = length(mu_vars);
 
 if n == 0
@@ -62,9 +63,20 @@ set(gca, 'FontSize', 16);
 set(gcf, 'Color', 'white');
 
 % Add a legend
-legend(cellstr(num2str(selected_components', 'Component %d')), 'Interpreter', 'latex', 'Location', 'best');
+legend_labels = arrayfun(@(x) sprintf('\\mu_{%d}', x), selected_components, 'UniformOutput', false);
+legend(legend_labels, 'Interpreter', 'tex', 'Location', 'best');
 
 % Adjust figure size for better visibility
 set(gcf, 'Position', [100, 100, 800, 600]);
 
 hold off;
+end
+
+function sorted_vars = sort_numeric(var_names)
+    % Extract numbers from variable names
+    numbers = cellfun(@(x) str2double(regexp(x, '\d+', 'match')), var_names);
+    
+    % Sort based on the extracted numbers
+    [~, idx] = sort(numbers);
+    sorted_vars = var_names(idx);
+end

@@ -1,9 +1,8 @@
 function plot_flexopiezoElec()
 % Clear workspace and command window
 clc;
-
 % Run the script that defines the variables. DEFINE PATH
-run('../../../Downloads/Personal_Projects/abinit-9.10.3/perovskites/CaTiO3_Pm3m/flexoElec/script/Datasets.m');
+run('../../../Downloads/Personal_Projects/abinit-9.10.3/perovskites/CaTiO3_Pm3m/flexoElec/script/Datasets_vec1.m');
 
 % Check if x_vec exists
 if ~exist('x_vec', 'var')
@@ -12,6 +11,7 @@ end
 
 % Find all mu matrices
 mu_vars = who('mu*');
+mu_vars = sort_numeric(mu_vars);
 n_mu = length(mu_vars);
 if n_mu == 0
     error('No mu matrices found after running Datasets.m');
@@ -19,6 +19,7 @@ end
 
 % Find all chi matrices
 chi_vars = who('chi*');
+chi_vars = sort_numeric(chi_vars);
 n_chi = length(chi_vars);
 if n_chi == 0
     error('No chi matrices found after running Datasets.m');
@@ -100,8 +101,6 @@ set(gca, 'FontSize', 16);
 set(gcf, 'Color', 'white');
 
 % Add legends
-% Add legends
-% Add legends
 mu_legend = arrayfun(@(x) sprintf('\x03BC_{%d}', x), mu_selected, 'UniformOutput', false);
 chi_legend = arrayfun(@(x) sprintf('\x03C7_{%d}', x), chi_selected, 'UniformOutput', false);
 legend([mu_plots, chi_plots], [mu_legend, chi_legend], 'Interpreter', 'tex', 'Location', 'best');
@@ -111,3 +110,14 @@ set(gcf, 'Position', [100, 100, 1000, 600]);
 
 hold off;
 end
+
+function sorted_vars = sort_numeric(var_names)
+    % Extract numbers from variable names
+    numbers = cellfun(@(x) str2double(regexp(x, '\d+', 'match')), var_names);
+    
+    % Sort based on the extracted numbers
+    [~, idx] = sort(numbers);
+    sorted_vars = var_names(idx);
+end
+
+% Components of interest are Mu 1 2 3 22 and Chi 1 2 3 11
