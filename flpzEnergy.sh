@@ -137,6 +137,6 @@ for eigVec in $eigVec_lines; do
     bash datapointCalcofEnergy.sh "${input_file}_vec${eigVec}"
 done
 
-handle_files "./" "rm" 
+handle_files "." "rm" 
 
 echo "FLPZ Program has completed calculations"
