@@ -51,3 +51,5 @@ calculation. The space group of the perturbed and unperturbed cell will be print
 Finally, remember to take the input files out of the folder and execute the bash or batch scripts from the parent directory of flpz_code. 
 In the future, I will allow it to detect where this folder is but for now, this is the case. 
 
+In the future, I will also add the ability to calculate and plot any possible couplings between eigendisplacements of a crystal.
+
