@@ -42,9 +42,12 @@ of each perturbed unit cell are included as vectors as well.
 An example of each input is included in the folder attached. Furthermore, all working code is in
 the flpz folder and the executable is flpzPert.sh. 
 
-Should be executed as: bash flpzPert.sh inputfile.in sInput.txt irrep
-or bash flpzEnergy.sh inputfile.in sInput.txt irrep. 
+Should be executed as: bash flpzPert.sh inputfile.in sInput.txt irrep or bash flpzEnergy.sh inputfile.in sInput.txt irrep.
+If you use the batch scripts, they are executed similarly as sbatch b-script-flpzPert/flpzEnergy inputfile.in sInput.txt irrep. 
 
 You should run flpzEnergy.sh to check whether you have hit an instability and see which phonons you want calculated before running the full
 calculation. The space group of the perturbed and unperturbed cell will be printed in the terminal or log. 
+
+Finally, remember to take the input files out of the folder and execute the bash or batch scripts from the parent directory of flpz_code. 
+In the future, I will allow it to detect where this folder is but for now, this is the case. 
 
