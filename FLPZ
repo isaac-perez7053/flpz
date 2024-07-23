@@ -1,0 +1,25 @@
+#!/bin/bash 
+
+# Serves as the program's input source script 
+
+program="$1"
+input_1="$2"
+input_2="$3"
+input_3="$4"
+
+if [ "$program" = "CPL" ]; then
+    cp flpz_input/b-script-flpzCouple .
+    sbatch b-script-flpzCouple "$input_1" "$input_2" "$input_3"
+    rm b-script-flpzCouple 
+elif [ "$program" = "PERT" ]; then
+    cp flpz_input/b-script-flpzPert . 
+    sbatch b-script-flpzPert "$input_1" "$input_2" "$input_3"
+    rm b-script-flpzPert
+elif [ "$program" = "ENERGY" ]; then
+    cp flpz_input/b-script-flpzEnergy . 
+    sbatch b-script-flpzEnergy "$input_1" "$input_2" "$input_3"
+    rm b-script-flpzEnergy
+else
+    echo "Program called invalid"
+    exit 1
+fi
