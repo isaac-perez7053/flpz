@@ -6,7 +6,7 @@
 # Usage: ./eigVecExtElec.sh <dynFreqs_file> <fceVecs_file> <input_file>
 
 if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <dynFreqs_file> <fceVecs_file> <input_file>"
+    echo "Usage: $0 <dynFreqs_file> <fceVecs_file> <input_file> <eig_dispIndex>"
     exit 1
 fi
 

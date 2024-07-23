@@ -16,15 +16,35 @@ read_input_params() {
     structure=$(grep "name" "$input_file" | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
     general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
     nproc=$(grep "nproc" "$input_file" | awk '{print $2}')
-    vecNum=$(grep "vecNum" "$input_file" | awk '{print $2}')
-    num_datapoints=$(grep "num_datapoints" "$input_file" | awk '{print $2}')
-    max=$(grep "max" "$input_file" | awk '{print $2}')
-    min=$(grep "min" "$input_file" | awk '{print $2}')
+    vecNum=$(grep "vecNum" "$input_file" | awk '{print $2}') 
+    time_limit=$(grep "time_limit" "$input_file" | awk '{print $2}')
+    phonon_coupling=$(grep "phonon_coupling" "$input_file" | awk '{print $2}')
+    
+    # Reads certain arguments depending on whether the user specified a phonon coupling calculation.
+    if [ "$phonon_coupling" = 1 ]; then 
+        dataset_1=$(grep "dataset_1" "$input_file" | awk '{print $2}')
+	    dataset_2=$(grep "dataset_2" "$input_file" | awk '{print $2}') 
+        grid_dimX=$(grep "grid_dim" "$input_file" |awk '{print $2}')
+	    grid_dimY=$(grep "grid_dim" "$input_file" |awk '{print $3}')
+    	xmin=$(grep "grid_range" "$input_file" | awk '{print $2}') 
+	    xmax=$(grep "grid_range" "$input_file" | awk '{print $3}')
+        ymin=$(grep "grid_range" "$input_file" | awk '{print $4}')
+        ymax=$(grep "grid_range" "$input_file" | awk '{pring $5}')
+    else    
+        num_datapoints=$(grep "num_datapoints" "$input_file" | awk '{print $2}')
+        max=$(grep "max" "$input_file" | awk '{print $2}')
+        min=$(grep "min" "$input_file" | awk '{print $2}')
+    fi
 }
 
 # Function to calculate step size
 calc_step_size() {
-    echo "scale=10; ($max-$min)/$num_datapoints" | bc
+    if [ "$phonon_coupling" = 1 ]; then
+	    step_sizeX=("scale=10; ($xmax-$xmin)/$grid_dimX" | bc) 
+        step_sizeY=("scale=10; ($ymax-$ymin)/$grid_dimY" |bc) 
+    else
+	    step_size=("scale=10; ($max-$min)/$num_datapoints" | bc)
+    fi
 }
 
 # Function to initialize output files
@@ -35,28 +55,34 @@ init_output_files() {
 
     echo "%x displacement vector magnitude" > "$xpoints"
     echo "x_vec = [" >> "$xpoints"
-    echo "$num_datapoints" > "$datasets_file"
+    
+    if [ "$phonon_coupling" = 1 ]; then 
+	    echo "$grid_dimX $grid_dimY" > "$datasets_file"
+    else 
+	    echo "$num_datapoints" > "$datasets_file"
+    fi
     : > "$datasetsAbo_file"
 }
 
 # Function to extract and normalize eigenvector displacements
 extract_normalize_eigdisp() {
     local input_file="$1"
-    local mode_location=$(grep -n "eigen_disp" "$input_file" | cut -d: -f1)
+    local eig_dispNum="$2"
+    local mode_location=$(grep -n "eigen_disp${eig_dispNum}" "$input_file" | cut -d: -f1)
     local begin_mode=$((mode_location + 1))
     local end_mode=$((begin_mode + $(grep "natom" "$general_structure_file" | awk '{print $2}') - 1))
     
     eig_disp=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
-    eigdisp_array=($eig_disp)
+    eigdisp_array${eig_dispNum}=($eig_disp)
     
     local eig_squaresum=0
-    for eig_component in "${eigdisp_array[@]}"; do
+    for eig_component in "${eigdisp_array${eigen_dispNum}[@]}"; do 
         eig_squaresum=$(echo "scale=15; $eig_component^2 + $eig_squaresum" | bc)
     done
     local normfact=$(echo "scale=15; sqrt($eig_squaresum)" | bc)
     
-    for i in "${!eigdisp_array[@]}"; do
-        eigdisp_array[i]=$(echo "scale=15; ${eigdisp_array[i]}/$normfact" | bc)
+    for i in "${!eigdisp_array${eig_dispNum}[@]}"; do
+        eigdisp_array${eig_dispNum}[i]=$(echo "scale=15; ${eigdisp_array${eig_dispNum}[i]}/$normfact" | bc)
     done
 }
 
@@ -94,6 +120,46 @@ create_perturbed_files() {
     # Create and submit batch script
     create_batch_script "$filename" "$filename_abi"
 }
+
+
+# Function to create perturbed system files
+create_perturbedcoupled_files() {
+    local iteration="$1"
+    local filename="${structure}_${iteration}_vec$vecNum"
+    local filename_abi="${filename}.abi"
+
+    echo "${structure}_${iteration}_vec${vecNum}o_DS4_DDB" >> "$datasets_file"
+    echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >> "$datasets_file"
+    echo "${filename}.abo" >> "$datasetsAbo_file"
+
+    # Extract and perturb cartesian coordinates
+    local xcart_location=$(grep -n "xcart" "$general_structure_file" | cut -d: -f1)
+    local xcart_start=$((xcart_location + 1))
+    local xcart_end=$((xcart_start + $(grep "natom" "$general_structure_file" | awk '{print $2}') - 1))
+    local xcart=$(sed -n "${xcart_start},${xcart_end}p" "$general_structure_file")
+
+    local count=0
+    local nxcart_array=()
+    for component in $xcart; do
+        local eig_dispcompX="${eigdisp_array[$count]}"
+	    local eig_dispcompY="${eigdisp_array2[$count]}"
+        local step_sizeX=$(echo "scale=15; ${step_sizeX} * ${iterationX}" | bc)
+	    local step_sizeY=$(echo "scale=15; ${step_sizeY} * ${iterationY}" | bc)
+        local perturbationX=$(echo "scale=15; ${eig_dispcompX} * ${step_sizeX}" | bc)
+	    local perturbationY=$(echo "scale=15; ${eig_dispcompY} * ${step_sizeY}" | bc)
+        nxcart_array+=("$(echo "scale=15; ${component} + ${perturbationX} + ${perturbationY}" | bc)")
+        count=$((count + 1))
+    done
+
+    echo "$step_sizeX $step_sizeY" >> "$xpoints"
+
+    # Create ABINIT input file
+    create_abinit_input "$filename_abi" "${nxcart_array[@]}"
+
+    # Create and submit batch script
+    create_batch_script "$filename" "$filename_abi"
+}
+
 
 # Function to create ABINIT input file
 create_abinit_input() {
@@ -171,10 +237,11 @@ EOF
         echo "${nxcart_array[i]} ${nxcart_array[i+1]} ${nxcart_array[i+2]}" >> "$filename_abi"
     done
 
-
-    # If this is the first perturbation, print the space group
-    if [[ $iteration -eq 1 ]]; then 
-        echo "The space group of the perturbed cell is $(bash findSpaceGroup.sh $filename_abi)"
+   # Print the space group of the perturbed cell
+    if [ "$phonon_coupling" = 1]; then
+        echo "The space group of cell ${iteration} is $(bash findSpaceGroup.sh $filename_abi)"
+    else 
+        echo "The space group of cell ${iterationX}, ${iterationY} is $(bash findSpaceGroup.sh $filename_abi)"
     fi 
 }
 
@@ -193,7 +260,7 @@ create_batch_script() {
 #SBATCH --cpus-per-task=1
 #SBATCH --account=crl174
 #SBATCH --mem=64G
-#SBATCH --time=23:59:59
+#SBATCH --time=47:59:59
 #SBATCH --output=output.log
 
 module purge
@@ -233,14 +300,23 @@ wait_for_jobs() {
 # Main execution
 check_args "$@"
 read_input_params "$1"
-step_size=$(calc_step_size)
+calc_step_size
 init_output_files
-extract_normalize_eigdisp "$1"
-
+extract_normalize_eigdisp "$1" "1"
 job_ids=()
-for iteration in $(seq 0 "$num_datapoints"); do
-    create_perturbed_files "$iteration"
-done
+# Create perturbed files
+if [ "$phonon_coupling" = 1 ]; then
+    extract_normalize_eigdisp "$1" "2"
+    for iterationX in $(seq 1 $grid_dimX); do 
+        for iterationY in $(seq 1 $grid_dimY); do
+		create_perturbedcoupled_files "$iterationX" "$iterationY"
+	done
+    done
+else	
+    for iteration in $(seq 0 "$num_datapoints"); do
+        create_perturbed_files "$iteration"
+    done
+fi
 
 wait_for_jobs
 
@@ -248,13 +324,12 @@ echo "Data Analysis Begins"
 echo "];" >> "$xpoints"
 
 # Organize files
-mkdir -p datapointAbiFiles DDBs
-mv ${structure}_*_vec${vecNum}.abi datapointAbiFiles/
-bash dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure" "$vecNum"
+mkdir -p datapointAbiFiles_vec${vecNum} DDBs_vec${vecNum}
+mv ${structure}_*_vec${vecNum}.abi datapointAbiFiles_vec${vecNum}/
+sbatch dataAnalysis.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$structure" "$vecNum"
 echo "Data Analysis is Complete"
 
-mv ${structure}_*_vec${vecNum}.abo datapointAbiFiles/
-mv ${structure}_*_vec${vecNum}_DS4_DDB ${structure}_*_vec${vecNum}_DS5_DDB DDBs/
-rm ${structure}_*_vec*
+mv ${structure}_*_vec${vecNum}.abo datapointAbiFiles_vec${vecNum}/
+mv ${structure}_*_vec${vecNum}o_DS4_DDB ${structure}_*_vec${vecNum}o_DS5_DDB DDBs_vec${vecNum}/
 
 echo "Flexoelectricity and Piezoelectricity calculation completed successfully."

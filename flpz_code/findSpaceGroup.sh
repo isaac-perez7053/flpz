@@ -73,6 +73,8 @@ gamma=$(calculate_angle "$nrprim1" "$nrprim2")
 # Create FINDSYM input file
 cat << EOF > "$fsInput_file"
 !useKeyWords
+!occupationTolerance
+0.01
 !latticeParameters
 $a, $b, $c, $alpha, $beta, $gamma
 !atomCount

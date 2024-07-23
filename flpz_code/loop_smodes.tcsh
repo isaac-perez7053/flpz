@@ -13,7 +13,7 @@ foreach II (`seq 0 $numJobs_ind` )
         cp -r boilerplate SMODES_$modeName/dist_${II}
         sed -i "/CELLDEF/ r dist_GM4-_${II}" SMODES_$modeName/dist_${II}/template.abi 
         sed -i "s/CELLDEF/ /g" SMODES_$modeName/dist_${II}/template.abi 
-	rm dist_GM4-_${II}
+	rm dist_${modeName}_${II}
 	mv SMODES_$modeName/dist_${II}/template.abi SMODES_$modeName/dist_${II}/dist_${II}.abi
 	sed -i "s/DISTNAME/dist_${II}/g" SMODES_$modeName/dist_${II}/jobscript.sh
         echo "cd SMODES_$modeName/dist_${II}; sbatch jobscript.sh; cd -" >> joblist
