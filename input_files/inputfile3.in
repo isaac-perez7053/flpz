@@ -1,0 +1,33 @@
+# The structure/compound, or any sequence of lowercase letters without spaces: it will be appended to all files generated in this run
+name catio3
+
+# Input file for general information about the crystal 
+genstruc general_structure.abi 
+
+# Number of datapoints
+num_datapoints 9
+
+#Number of processers for datapoint calculation
+nproc 25
+
+#Phonon coupling switch 
+phonon_coupling 1
+
+#Previous calculation datasets (should be the matlab file)
+datasets_1 filepath/1
+
+datasets_2 filepath/2
+
+#Define grid resolution
+grid_dim 5 7 
+
+#Define grid range written as xmin, xmax, ymin, ymax
+grid_range 0.0 0.7 0.0 0.5
+
+
+# Time limit for jobs
+time_limit 47:59:59
+
+
+
+
