@@ -53,3 +53,9 @@ In the future, I will allow it to detect where this folder is but for now, this 
 
 In the future, I will also add the ability to calculate and plot any possible couplings between eigendisplacements of a crystal.
 
+* TODO * 
+********
+
+In the current version, it is required that you do the phonon calculations separately before doing their coupling but in the future I would like to 
+implement a feature that doesn't require this and allows users to run the coupling calculation without doing 2 separate calculations. 
+
