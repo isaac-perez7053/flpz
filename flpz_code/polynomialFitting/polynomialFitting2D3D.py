@@ -31,20 +31,22 @@ def scale_data(x, y, z):
 def create_polynomial_function(terms):
     def polynomial(xy, *params):
         x, y = xy
-        result = 0
-        for param, term in zip(params, terms):
+        result = params[-1]  # Constant term
+        for param, term in zip(params[:-1], terms):
             if 'x' in term and 'y' in term:
-                x_power = int(term.split('x^')[1].split('y^')[0])
-                y_power = int(term.split('y^')[1])
+                if '^' in term:
+                    x_part, y_part = term.split('y')
+                    x_power = int(x_part.split('^')[1]) if '^' in x_part else 1
+                    y_power = int(y_part.split('^')[1]) if '^' in y_part else 1
+                else:
+                    x_power = y_power = 1
                 result += param * (x**x_power) * (y**y_power)
             elif 'x' in term:
-                power = int(term.split('^')[1])
+                power = int(term.split('^')[1]) if '^' in term else 1
                 result += param * x**power
             elif 'y' in term:
-                power = int(term.split('^')[1])
+                power = int(term.split('^')[1]) if '^' in term else 1
                 result += param * y**power
-            else:
-                result += param  # constant term
         return result
     return polynomial
 
@@ -57,7 +59,7 @@ def create_2d_plot(x_scaled, y, y_pred, axis_label, terms, popt):
     plt.title(f'2D Polynomial Fit for {axis_label}-axis')
     plt.legend()
     
-    equation = "z = " + " + ".join([f"{coef:.6e}{term}" for coef, term in zip(popt[:-1], terms)] + [f"{popt[-1]:.6e}"])
+    equation = "z = " + " + ".join([f"{coef:.6e}{term}" for coef, term in zip(popt[:-1], terms[:-1])] + [f"{popt[-1]:.6e}"])
     plt.text(0.05, 0.95, equation, transform=plt.gca().transAxes, verticalalignment='top', fontsize=9)
     
     plt.savefig(f'2d_fit_{axis_label.lower()}.png')
@@ -79,11 +81,19 @@ def fit_and_evaluate_3d(x, y, z, func, p0):
 
 def create_2d_polynomial_function(powers):
     def polynomial(x, *params):
-        return sum(param * x**power for param, power in zip(params, powers)) + params[-1]
+        return sum(param * x**power for param, power in zip(params[:-1], powers)) + params[-1]
     return polynomial
 
 def stepwise_fitting_2d(x, z, terms, axis_label):
-    powers = [int(term.split('^')[1]) for term in terms if axis_label.lower() in term]
+    powers = []
+    for term in terms:
+        if axis_label.lower() in term:
+            if '^' in term:
+                powers.append(int(term.split('^')[1]))
+            else:
+                powers.append(1)  # For terms like 'x' or 'y', assume power is 1
+    powers.sort()  # Sort powers in ascending order
+    
     best_terms = []
     best_popt = []
     
@@ -102,9 +112,9 @@ def stepwise_fitting_2d(x, z, terms, axis_label):
         print(f"MSE: {mse:.6e}")
         print(f"R-squared: {r2:.6f}\n")
         
-        current_terms = [f'{axis_label}^{power}' for power in current_powers]
-        best_terms.extend(current_terms)
-        best_popt.extend(popt[:-1])  # Exclude the constant term
+        current_terms = [f'{axis_label}^{p}' if p != 1 else axis_label for p in current_powers] + ['1']
+        best_terms = current_terms
+        best_popt = popt
         previous_popt = popt
         
         # Create and save 2D plot
@@ -114,57 +124,70 @@ def stepwise_fitting_2d(x, z, terms, axis_label):
 
 def stepwise_fitting_3d(x, y, z, terms, uncoupled_terms, uncoupled_popt):
     coupled_terms = [term for term in terms if 'x' in term and 'y' in term]
-    all_terms = uncoupled_terms + coupled_terms
+    all_terms = list(dict.fromkeys(uncoupled_terms + coupled_terms + ['1']))  # Remove duplicates and add constant term
 
-    def fixed_poly_func(xy, *params):
+    def poly_func(xy, *params):
         x, y = xy
-        result = 0
-        param_index = 0
-        for term in all_terms:
-            if term in uncoupled_terms:
-                coef = uncoupled_popt[uncoupled_terms.index(term)]
-            else:
-                coef = params[param_index]
-                param_index += 1
-            
+        result = params[-1]  # Constant term
+        for term, param in zip(all_terms[:-1], params[:-1]):
             if 'x' in term and 'y' in term:
-                x_power = int(term.split('x^')[1].split('y^')[0])
-                y_power = int(term.split('y^')[1])
-                result += coef * (x**x_power) * (y**y_power)
+                if '^' in term:
+                    x_part, y_part = term.split('y')
+                    x_power = int(x_part.split('^')[1]) if '^' in x_part else 1
+                    y_power = int(y_part.split('^')[1]) if '^' in y_part else 1
+                else:
+                    x_power = y_power = 1
+                result += param * (x**x_power) * (y**y_power)
             elif 'x' in term:
-                power = int(term.split('^')[1])
-                result += coef * x**power
+                power = int(term.split('^')[1]) if '^' in term else 1
+                result += param * x**power
             elif 'y' in term:
-                power = int(term.split('^')[1])
-                result += coef * y**power
+                power = int(term.split('^')[1]) if '^' in term else 1
+                result += param * y**power
         return result
 
-    initial_guess = [1.0] * len(coupled_terms)
-    popt, _ = curve_fit(fixed_poly_func, (x, y), z, p0=initial_guess, maxfev=10000)
+    # Rest of the function remains the same...
 
-    # Combine uncoupled and coupled coefficients
-    full_popt = list(uncoupled_popt) + list(popt)
+    # Create initial guess
+    initial_guess = []
+    for term in all_terms[:-1]:  # Exclude the constant term
+        if term in uncoupled_terms:
+            initial_guess.append(uncoupled_popt[uncoupled_terms.index(term)])
+        else:
+            initial_guess.append(1.0)
+    initial_guess.append(0.0)  # Add initial guess for constant term
+
+    # Try fitting with different methods and parameters
+    try:
+        popt, pcov = curve_fit(poly_func, (x, y), z, p0=initial_guess, maxfev=100000, method='trf', loss='soft_l1')
+    except RuntimeError:
+        try:
+            popt, pcov = curve_fit(poly_func, (x, y), z, p0=initial_guess, maxfev=100000, method='lm')
+        except RuntimeError:
+            popt, pcov = curve_fit(poly_func, (x, y), z, p0=initial_guess, maxfev=100000)
 
     # Calculate predictions and metrics
-    z_pred = fixed_poly_func((x, y), *popt)
+    z_pred = poly_func((x, y), *popt)
     mse = np.mean((z - z_pred)**2)
     r2 = 1 - np.sum((z - z_pred)**2) / np.sum((z - np.mean(z))**2)
 
     print(f"3D Fitting: All terms")
-    print(print_equation(full_popt, all_terms))
+    print(print_equation(popt, all_terms))
     print(f"MSE: {mse:.6e}")
     print(f"R-squared: {r2:.6f}\n")
 
-    return all_terms, full_popt, mse, r2
+    return all_terms, popt, mse, r2
 
 def print_equation(popt, terms):
     equation = "z = "
-    for coef, term in zip(popt, terms):
-        if term:
-            equation += f"{coef:.6e}{term} + "
-        else:
-            equation += f"{coef:.6e}"
-    return equation.rstrip(" + ")
+    for coef, term in zip(popt[:-1], terms[:-1]):
+        if term != '1':
+            if '^' in term:
+                equation += f"{coef:.6e}{term} + "
+            else:
+                equation += f"{coef:.6e}{term} + "
+    equation += f"{popt[-1]:.6e}"  # Add constant term
+    return equation
 
 def create_interactive_plot(x, y, z, X, Y, Z, terms, popt):
     fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'surface'}]])
@@ -232,13 +255,11 @@ def main():
     uncoupled_terms_x, uncoupled_popt_x = stepwise_fitting_2d(x_filtered, z_filtered_x, x_terms, 'X')
     uncoupled_terms_y, uncoupled_popt_y = stepwise_fitting_2d(y_filtered, z_filtered_y, y_terms, 'Y')
     
-    uncoupled_terms = uncoupled_terms_x + uncoupled_terms_y
-    uncoupled_popt = uncoupled_popt_x + uncoupled_popt_y
+    uncoupled_terms = uncoupled_terms_x[:-1] + uncoupled_terms_y[:-1]  # Exclude constant terms
+    uncoupled_popt = list(uncoupled_popt_x[:-1]) + list(uncoupled_popt_y[:-1])  # Exclude constant terms
 
     all_terms = uncoupled_terms + coupled_terms
     best_terms, best_popt, best_mse, best_r2 = stepwise_fitting_3d(x_scaled, y_scaled, z_scaled, all_terms, uncoupled_terms, uncoupled_popt)
-    
-    # ... (rest of the main function remains the same)
     
     print("\nFinal best fit:")
     print(f"Terms: {', '.join(best_terms)}")
