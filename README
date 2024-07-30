@@ -35,21 +35,31 @@ phonon points (e.g. GM or M)
 the piezoelectric and flexoeelctric tensor components. The x-point (amplitude) and total energy
 of each perturbed unit cell are included as vectors as well. 
 
+2.) All input files that were used in the program (excluding bash scripts)
+
+
+* Setup * 
+*********
+
+Current use: Currently, this program is successfully running on an linux super computer at HMC. There, SLURM and ABINIT are downloaded
+onto the program itself.
+
+When beginning the program, a few things must be completed first:
+1.) Ensure all files have executable permissions, particularly the python scripts and isobyu folder that contains the ISOTROPY programs. I 
+will likely automate this to save time in the future. 
+2.) Any call to the flpz program should be done with flpz_code and flpz_input directories in the current working directory. Furthermore, 
+pseudopotentials for all atoms should exist in the current directory and the current parent directory. I will also fix this in the future. 
+3.) Before beginning, you must write a batch script preamble text file as shown above that works on your current computer with SLURM. Run the script, 
+bash compileFLPZ.sh flpz_input "batchScriptPreamble.txt" 
+4.) (optional) I created a alias to the flpz program "alias flpz='bash flpz' for cleaner calls. Call the flpz program with 
+flpz (ENERGY/PERT/CPL) <input_file> <smodes_input> <irrep>
+5.) winner 
 
 * Final Note *
 **************
 
-An example of each input is included in the folder attached. Furthermore, all working code is in
-the flpz folder and the executable is flpzPert.sh. 
-
-Should be executed as: bash flpzPert.sh inputfile.in sInput.txt irrep or bash flpzEnergy.sh inputfile.in sInput.txt irrep.
-If you use the batch scripts, they are executed similarly as sbatch b-script-flpzPert/flpzEnergy inputfile.in sInput.txt irrep. 
-
 You should run flpzEnergy.sh to check whether you have hit an instability and see which phonons you want calculated before running the full
 calculation. The space group of the perturbed and unperturbed cell will be printed in the terminal or log. 
-
-Finally, remember to take the input files out of the folder and execute the bash or batch scripts from the parent directory of flpz_code. 
-In the future, I will allow it to detect where this folder is but for now, this is the case. 
 
 In the future, I will also add the ability to calculate and plot any possible couplings between eigendisplacements of a crystal.
 
