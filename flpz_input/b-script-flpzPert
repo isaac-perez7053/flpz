@@ -1,15 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=FLPZ_Pert
-#SBATCH --output=FLPZ_Pert.out
-#SBATCH --error=FLPZ_Pert.err
-#SBATCH --time=47:59:59
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --account=crl174
-#SBATCH --partition=shared
 
-# Set the working directory
-cd /expanse/lustre/projects/crl174/iperez2/flpz_local || exit
+
+# Ensure current directory is set
+cd /home/iperez/projects/Automation || exit
 
 # FLPZ Perturbation Program
 # Executes the FLPZ (Flexoelectric Piezoelectric) perturbation calculations
@@ -31,26 +24,46 @@ irrep="$3"
 general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
 structure=$(grep "name" "$input_file" | awk '{print $2}')
 ntypat=$(grep "ntypat" "$general_structure_file" | awk '{print $2}')
+bScriptPreamble=$(grep "sbatch_preamble" "$input_file" | awk '{print $2}')
 
 # Create new working directory
-dir="${structure}_${irrep}"
+dir="${structure}_${irrep}_Pert"
 mkdir -p "$dir"
 
 # Copy necessary files to working directory
 handle_files() {
     local source_dir="$1"
-    local files=(
-        "boilerplate_generation.sh"
-        "smodes_symmadapt_abinit.py"
-        "loop_smodes.tcsh"
-        "smodes_postproc_abinit.py"
-        "eigVecExtElec.sh"
-        "datapointCalcofElec.sh"
-        "dataAnalysis.sh"
-        "xredToxcart.sh"
-        "findAngle.py"
-        "findSpaceGroup.sh"
-    )
+    if [ "$2" = "cp" ]; then
+        local files=(
+            "shared/boilerplate_generation.sh"
+            "shared/smodes_symmadapt_abinit.py"
+            "shared/loop_smodes.tcsh"
+            "shared/smodes_postproc_abinit.py"
+            "perturbations/eigVecExtPert.sh"
+            "perturbations/datapointCalcofPert.sh"
+            "perturbations/dataAnalysisPert.sh"
+            "shared/xredToxcart.sh"
+            "shared/xcartToxred.sh"
+            "shared/findAngle.py"
+            "shared/findSpaceGroup.sh"
+            "shared/xCartxRed.py"
+        )
+    elif [ "$2" = "rm" ]; then 
+        local files=(
+            "boilerplate_generation.sh"
+            "smodes_symmadapt_abinit.py"
+            "loop_smodes.tcsh"
+            "smodes_postproc_abinit.py"
+            "eigVecExtPert.sh"
+            "datapointCalcofPert.sh"
+            "dataAnalysisPert.sh"
+            "xredToxcart.sh"
+            "xcartToxred.sh"
+            "findAngle.py"
+            "findSpaceGroup.sh"
+            "xCartxRed.py"
+        )
+    fi 
     for file in "${files[@]}"; do
         if [ "$2" = "rm" ]; then
             rm "$source_dir/$file"
@@ -63,6 +76,7 @@ handle_files() {
 handle_files "flpz_code" "cp"
 cp "$input_file" "$dir/"
 cp "$smodes_input" "$dir/"
+cp "$bScriptPreamble" "$dir/"
 
 # Generate boilerplate
 bash "$dir/boilerplate_generation.sh" "$input_file"
@@ -88,14 +102,14 @@ copy_pseudos "SMODES_$irrep"
 copy_pseudos "."
 
 echo "Successfully created dependencies"
-echo "FCEvec calculations begin"
+echo "FCEvecs calculations begin"
 
 # Wait for jobs to finish 
 job_ids=()
 file_path=joblist
 
 count=0
-while IFS= read -r line
+while IFS= read -r 
 do
     cd "SMODES_${irrep}/dist_${count}" || exit
     # Submit job and capture the job ID
@@ -124,15 +138,38 @@ echo "Post-processing of FCEvecs begins"
 sed -i "s|^genstruc .*|genstruc SMODES_${irrep}/dist_0/dist_0.abi|" "$input_file"
 general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
 
-echo "The space group of the unperturbed cell is $(bash findSpaceGroup.sh $general_structure_file)"
-bash xredToxcart.sh "SMODES_${irrep}/dist_0/dist_0.abi" >> "FLPZ_Pert.out" 2>&1
+bash xcartToxred.sh "$general_structure_file"
+echo "The space group of the unperturbed cell is $(bash findSpaceGroup.sh "$general_structure_file")"
+
+
+# Allows us to check and ensure that the conversion was correct
+echo "#####################################################"
+echo "General structure file pre-conversion"
+cat "SMODES_${irrep}/dist_0/dist_0.abi"
+
+bash xredToxcart.sh "SMODES_${irrep}/dist_0/dist_0.abi"
+
+echo "#####################################################"
+echo "General structure file post-conversion"
+cat "SMODES_${irrep}/dist_0/dist_0.abi"
+echo "#####################################################"
 
 python3 smodes_postproc_abinit.py "$irrep"
 mv "SMODES_${irrep}/FCEvecs.dat" "."
 mv "SMODES_${irrep}/DynFreqs.dat" "."
 
-bash eigVecExtElec.sh "DynFreqs.dat" "FCEvecs.dat" "$input_file" >> "FLPZ_Pert.out" 2>&1
+# Allows user to view output of Prof. Ritz's program
+echo "#####################################################"
+echo "Printing FCEvecs.dat"
+cat "FCEvecs.dat"
+echo "#####################################################"
+echo "Printing DynFreqs.dat"
+cat "DynFreqs.dat"
+echo "#####################################################"
 
+bash eigVecExtPert.sh "DynFreqs.dat" "FCEvecs.dat" "$input_file" "1" 
+
+# Read variables placed by eigVecExtPert.sh
 eigVec_nlines=$(grep "eigVec_nlines" "$input_file" | awk '{print $2}')
 mode_location=$(grep -n "eigVec_lines" "$input_file" | cut -d: -f1)
 eigVec_lines=$(sed -n "$((mode_location+1)),$((mode_location+eigVec_nlines))p" "$input_file")
@@ -143,13 +180,13 @@ echo "Calculation of datapoints begins"
 # Calculate datapoints
 mkdir datapointInputFiles
 for eigVec in $eigVec_lines; do
-    bash datapointCalcofElec.sh "${input_file}_vec${eigVec}" >> "FLPZ_Pert.out" 2>&1
+    bash datapointCalcofPert.sh "${input_file}_vec${eigVec}" "$irrep"
     mv "${input_file}_vec${eigVec}" datapointInputFiles
 done
 
 rm "${structure}_*_vec*"
 handle_files "." "rm"
 
-rm -r "boilerplate SMODES_${irrep}"
+#rm -r "boilerplate" "SMODES_${irrep}"
 
 echo "FLPZ Program has completed calculations"

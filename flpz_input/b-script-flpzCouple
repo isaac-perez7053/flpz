@@ -1,0 +1,153 @@
+#!/bin/bash 
+
+
+
+# Ensure current directory is set
+cd /home/iperez/projects/Automation || exit
+
+# FLPZ Coupling Program
+# Executes the FLPZ (Flexoelectric Piezoelectric) perturbation coupling calculations
+
+# Usage: ./flpzCouple.sh <input_file> <datasets1> (optional) <dataset2> (optional)
+
+# Extraction of variables
+read_input_params() {
+    input_file="$1"
+    irrep_1="$2"
+    irrep_2="$3"
+    structure=$(grep "name" "$input_file" |awk '{print $2}')
+    inputIrrep_1=$(grep "inputIrrep_1" "$input_file" | awk '{print $2}')
+    inputIrrep_2=$(grep "inputIrrep_2" "$input_file" | awk '{print $2}')
+    inputData_1=$(grep "inputData_1" "$input_file" |awk '{print $2}')
+    inputData_2=$(grep "inputData_2" "$input_file" | awk '{print $2}')
+
+    echo "input_file: $input_file"
+    echo "irrep_1: $irrep_1"
+    echo "irrep_2: $irrep_2"
+    echo "structure: $structure"
+    echo "inputIrrep_1: $inputIrrep_1"
+    echo "inputIrrep_2: $inputIrrep_2"
+    echo "inputData_1: $inputData_1"
+    echo "inputData_2: $inputData_2"
+
+    # Read eigendisplacement vectors of both input irrepresentations
+    mode_location=$(grep -n "eigen_disp" "$inputIrrep_1" | cut -d: -f1)
+    general_structure_file=$(grep "genstruc" "$inputIrrep_1" | awk '{print $2}')
+    begin_mode=$((mode_location + 1))
+    end_mode=$((begin_mode + $(grep "natom" "$general_structure_file" | awk '{print $2}') - 1))
+    eig_disp1=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+
+    echo "mode_location (for eig_disp1): $mode_location"
+    echo "general_structure_file: $general_structure_file"
+    echo "begin_mode (for eig_disp1): $begin_mode"
+    echo "end_mode (for eig_disp1): $end_mode"
+    echo "eig_disp1: $eig_disp1"
+
+    mode_location=$(grep -n "eigen_disp" "$inputIrrep_2" | cut -d: -f1)
+    general_structure_file=$(grep "genstruc" "$inputIrrep_2" | awk '{print $2}')
+    begin_mode=$((mode_location + 1))
+    end_mode=$((begin_mode + $(grep "natom" "$general_structure_file" | awk '{print $2}') - 1))
+    eig_disp2=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+
+    echo "mode_location (for eig_disp2): $mode_location"
+    echo "general_structure_file: $general_structure_file"
+    echo "begin_mode (for eig_disp2): $begin_mode"
+    echo "end_mode (for eig_disp2): $end_mode"
+    echo "eig_disp2: $eig_disp2"
+}
+
+# Copy necessary files to working directory
+handle_files() {
+    local source_dir="$1"
+    if [ "$2" = "cp" ]; then 
+        local files=(
+            "energy/eigVecExtEnergy.sh"
+            "energy/datapointCalcofEnergy.sh"
+            "energy/dataAnalysisEnergy.sh"
+            "shared/xredToxcart.sh"
+            "shared/findAngle.py"
+            "shared/findSpaceGroup.sh"
+            "polynomialFitting/polynomialFitting2D3D.py"
+            "polynomialFitting/totEnergytoDat.sh"
+            "polynomialFitting/onAxisDataPoints.sh"
+            "phononCoupling/isoInvariant.sh"
+            "phononCoupling/transformCell_map.m"
+            "phononCoupling/eigVecExtension.sh"
+            "phononCoupling/datapointCalcofEnergyCouple.sh"
+            "phononCoupling/dataAnalysisCouple.sh"
+        )
+    elif [ "$2" = "rm" ]; then
+        local files=(
+            "eigVecExtEnergy.sh"
+            "datapointCalcofEnergy.sh"
+            "dataAnalysisEnergy.sh"
+            "xredToxcart.sh"
+            "findAngle.py"
+            "findSpaceGroup.sh"
+            "polynomialFitting2D3D.py"
+            "totEnergytoDat.sh"
+            "onAxisDataPoints.sh"
+            "isoInvariant.sh"
+            "transformCell_map.m"
+            "eigVecExtension.sh"
+            "datapointCalcofEnergyCouple.sh"
+            "dataAnalysisCouple.sh"
+        )
+    fi
+    for file in "${files[@]}"; do
+        if [ "$2" = "rm" ]; then
+            rm "$source_dir/$file"
+        elif [ "$2" = "cp" ]; then
+            cp "$source_dir/$file" "$dir/"
+        fi
+    done
+}
+ 
+# Creation of new working directory with necessary files
+dir="${structure}_${irrep_1}_${irrep_2}"
+handle_files "flpz_code" "cp"
+cp "$input_file" "$dir"
+mkdir -p "$dir"
+cd "$dir" || exit
+
+# Include eigenvectors in input file
+{
+echo "eig_disp1" 
+echo "$eig_disp1" 
+echo "eig_disp2" 
+echo "$eig_disp2" 
+} >> "$input_file"
+
+#TODO, write a conditional that checks which cell is compatible with which. For example, which cell is bigger. Just compare natom. 
+
+# Initialization of input data for surface fitting. Stored in a file name 3D_coordinates.dat
+bash onAxisDataPoints.sh "$(bash totEnergytoDat.sh "$inputData_1" | awk '{print $5}' | sed 's/.*\///')" "$(bash totEnergytoDat.sh "$inputData_2" | awk '{print $5}' | sed 's/.*\///')"
+
+# This line fo code will take the old eigendisplacement vector and the new target cell and will not only map which atoms are which in the new cell, but will convert
+# the old eigendisplacement vector to be valid for the new cell. 
+if [ "$(echo "${eig_disp1}" | wc -l)" -gt "$(echo "${eig_disp2}" | wc -l)" ]; then
+    neweig_disp2="$(bash eigVecExtension.sh "$eig_disp2" "$(bash transformCell.sh "$inputIrrep_2" "$inputIrrep_1" | sed -n '/Mapping =/,/^$/p' | tail -n +2 | awk '{print $1}' | grep '^[0-9]*$')")"
+    #Update the eigendisplacement value in the input file. 
+    sed -i '' "s/${eig_disp2}/${neweig_disp2}/g" "$input_file"
+else
+    neweig_disp1="$(bash eigVecExtension.sh "$eig_disp1" "$(bash transformCell.sh "$inputIrrep_1" "$inputIrrep_2" | sed -n '/Mapping =/,/^$/p' | tail -n +2 | awk '{print $1}' | grep '^[0-9]*$')")"
+    #Update the eigendisplacement value in the input file. 
+    sed -i '' "s/${eig_disp1}/${neweig_disp1}/g" "$input_file"
+fi 
+
+# Calculate datapoints and store points into 3D_coordinates.dat 
+bash datapointCalcofEnergyCouple.sh "$input_file" "$irrep_1" "$irrep_2"
+
+# Extract the datapoints data into a matlab file. 
+bash dataAnalysisCouple.sh 
+
+# Put output datapoints of datapointCalcofEnergyCouple.sh into 3D_coordinates.dat
+
+output >> 3D_coordinates.dat 
+
+# Fit data to a surface
+polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" "$(bash isoInvariant.sh "$input_file" "$irrep_1" "$irrep_2")")"
+echo "$polynomialFittingOut"
+echo "The equation of the fitted surface is:" 
+echo "$polynomialFittingOut"| sed -n '/3D Fitting: All terms/,/MSE/p' | grep -v -e '3D Fitting: All terms' -e 'MSE'
+
