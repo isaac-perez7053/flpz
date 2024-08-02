@@ -1,0 +1,47 @@
+#!/bin/bash 
+
+# Serves as the program's input source script 
+
+# Initialize flag variable
+run_energy=false
+
+# Parse command line options
+while getopts "e" opt; do
+  case $opt in
+    e)
+      run_energy=true
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+
+program="$1"
+input_1="$2"
+input_2="$3"
+input_3="$4"
+
+if [ "$program" = "cpl" ]; then
+    cp flpz_input_compiled/b-script-flpzCouple .
+    if [ "$run_energy" = true ]; then
+        sbatch b-script-flpzCouple -e "$input_1" "$input_2" "$input_3"
+    else
+        sbatch b-script-flpzCouple "$input_1" "$input_2" "$input_3"
+    fi
+    rm b-script-flpzCouple 
+elif [ "$program" = "pert" ]; then
+    cp flpz_input_compiled/b-script-flpzPert . 
+    sbatch b-script-flpzPert "$input_1" "$input_2" "$input_3"
+    rm b-script-flpzPert
+elif [ "$program" = "energy" ]; then
+    cp flpz_input_compiled/b-script-flpzEnergy . 
+    sbatch b-script-flpzEnergy "$input_1" "$input_2" "$input_3"
+    rm b-script-flpzEnergy
+else
+    echo "Program called invalid"
+    exit 1
+fi
