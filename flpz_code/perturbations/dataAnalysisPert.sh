@@ -4,7 +4,7 @@
 # Analyses the total energy, flexoelectricity, and piezoelectricity of the perturbed system form 
 # datapoint calculations. 
 
-# Usage: ./dataAnalysisPert.sh <derivative_db_file> <x_points_file> <abo_files_list> <structure_name> <vector_number>
+# Usage: ./dataAnalysisPert.sh <derivative_db_file> <x_points_file> <abo_files_list> <vector_number>
 
 ## Check if the correct number of arguments are provided
 # Storing inputs from input file
@@ -91,8 +91,8 @@ EOF
 EOF
 
         # Run Anaddb Files
-        mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np 1 anaddb < "${anaddbfilesF}" >& "${anaddbfilesF}.log"
-        mpirun --mca btl_openib_if_include "mlx5_2:1" --mca btl self,vader -np 1 anaddb < "${anaddbfilesP}" >& "${anaddbfilesP}.log"
+        mpirun -hosts=localhost -np  1 abinit  "${anaddbfilesF}" >& "${anaddbfilesF}.log"
+        mpirun -hosts=localhost -np  1 abinit  "${anaddbfilesP}" >& "${anaddbfilesP}.log"
 
         done
 
