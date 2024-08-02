@@ -38,17 +38,18 @@ extract_data() {
     xred=$(awk '/^xred/{flag=1; next} flag && NF==3{print; if (++count=='"$natom"') exit}' "$input_file" | tr '\n' ' ' | sed 's/ $//')
     xcart=$(awk '/^xcart/{flag=1; next} flag && NF==3{print; if (++count=='"$natom"') exit}' "$input_file" | tr '\n' ' ' | sed 's/ $//')
 
-    if [ -n "$xcart" ]; then 
+    if [ -z "$xred" ]; then
         echo "File is already expressed in cartesian coordinates"
         exit 1
-    fi 
+    fi
+
 
     # Extract and expand acell parameters
-    acell_params="($(grep "^acell" "$input_file" | awk '{for(i=2;i<=NF;i++) print $i}'))"
+    acell_params=($(grep "^acell" "$input_file" | awk '{for(i=2;i<=NF;i++) print $i}'))
     expanded_params=()
     for param in "${acell_params[@]}"; do
         expanded=$(expand_notation "$param")
-        expanded_params+=("$expanded")
+        expanded_params+=($expanded)
     done
     a="${expanded_params[0]}"
     b="${expanded_params[1]}"
