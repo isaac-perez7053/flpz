@@ -1,8 +1,6 @@
 #!/bin/bash
-
-# Calculates the total energy of the perturbed system for the flpz program
-# Usage: ./datapointCalcofEnergy.sh <input_file> <irrep>
-
+# Flexoelectricity and Piezoelectricity Calculation for Perturbed Systems
+# Usage: ./datapointCalcofElec.sh <input_file> 
 
 # Python-based calculation function
 calculate() {
@@ -28,30 +26,25 @@ END
 
 # Function to check correct number of arguments
 check_args() {
-    if [ "$#" -ne 2 ]; then
-        echo "Usage: $0 <input_file> <irrep>"
+    if [ "$#" -ne 1 ]; then
+        echo "Usage: $0 <input_file>"
         exit 1
     fi
 }
 
 # Function to read input parameters
 read_input_params() {
-    input_file="$1"
+    local input_file="$1"
     structure=$(grep "name" "$input_file" | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
     general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
     nproc=$(grep "nproc" "$input_file" | awk '{print $2}')
-    vecNum=$(grep "vecNum" "$input_file" | awk '{print $2}')
+    natom=$(grep "natom" "$general_structure_file" | awk '{print $2}')
+    vecNum=$(grep "vecNum" "$input_file" | awk '{print $2}') 
     bScriptPreamble=$(grep "sbatch_preamble" "$input_file" | awk '{print $2}')
     phonon_coupling=$(grep "phonon_coupling" "$input_file" | awk '{print $2}')
-
-    num_datapoints=$(grep "num_datapoints" "$input_file" | awk '{print $2}')
-    max=$(grep "max" "$input_file" | awk '{print $2}')
-    min=$(grep "min" "$input_file" | awk '{print $2}')
-
+    
     # Reads certain arguments depending on whether the user specified a phonon coupling calculation.
     if [ "$phonon_coupling" = 1 ]; then 
-        dataset_1=$(grep "dataset_1" "$input_file" | awk '{print $2}')
-	    dataset_2=$(grep "dataset_2" "$input_file" | awk '{print $2}') 
         grid_dimX=$(grep "grid_dim" "$input_file" |awk '{print $2}')
 	    grid_dimY=$(grep "grid_dim" "$input_file" |awk '{print $3}')
     	xmin=$(grep "grid_range" "$input_file" | awk '{print $2}') 
@@ -67,11 +60,14 @@ read_input_params() {
 
 # Function to calculate step size
 calc_step_size() {
-    if [ "$phonon_coupling" = 1 ]; then 
-        step_sizeX=$(bc -l <<< "scale=10; ($xmax-$xmin)/$grid_dimX")
-        step_sizeY=$(bc -l <<< "scale=10; ($ymax-$ymin)/$grid_dimY")
+    if [ "$phonon_coupling" = 1 ]; then
+        step_sizeX=$(calculate "($xmax-$xmin)/$grid_dimX")
+        step_sizeY=$(calculate "($ymax-$ymin)/$grid_dimY")
+        echo "Step Size X: $step_sizeX"
+        echo "Step Size Y: $step_sizeY"
     else
-        step_size=$(bc -l <<< "scale=10; ($max-$min)/$num_datapoints")
+        step_size=$(calculate "($max-$min)/$num_datapoints")
+        echo "Step Size: $step_size"
     fi
 }
 
@@ -84,10 +80,10 @@ init_output_files() {
     echo "%x displacement vector magnitude" > "$xpoints"
     echo "x_vec = [" >> "$xpoints"
     echo "$num_datapoints" > "$datasets_file"
-    : > "$datasetsAbo_file"
+
 
     if [ "$phonon_coupling" = 1 ]; then 
-	    echo "$grid_dimX $grid_dimY" > "$datasets_file"
+	    "$(calculate "$grid_dimX*$grid_dimY")" > "$datasets_file"
     else 
 	    echo "$num_datapoints" > "$datasets_file"
     fi
@@ -99,45 +95,36 @@ init_output_files() {
     echo "datasetsAbo_file: $datasetsAbo_file"
 }
 
-# Function to extract and normalize eigenvector displacements
-extract_normalize_eigdisp() {
-    local input_file="$1"
-    local eig_dispNum="$2"
 
-    mode_location=$(grep -in "^ *eigen_disp *${eig_dispNum}" "$input_file" | cut -d: -f1)
+
+# Function to extract and normalize eigenvector displacements
+extract_normalize_eigdisp1() {
+    local input_file="$1"
+
+    mode_location=$(grep -in "eigen_disp1" "$input_file" | cut -d: -f1)
 
     if [ -z "$mode_location" ]; then
-        echo "Error: Could not find eigen_disp${eig_dispNum} in $input_file"
+        echo "Error: Could not find eigen_disp1 in $input_file"
         exit 1
     fi
 
     local begin_mode=$((mode_location + 1))
-    natom=$(grep "natom" "$general_structure_file" | awk '{print $2}')
-    local natom
+    local end_mode=$(( begin_mode + natom - 1 ))
 
-    if [ -z "$natom" ]; then
-        echo "Error: Could not find natom in $general_structure_file"
-        exit 1
-    fi
+    eig_disp1=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
 
-    local end_mode=$((begin_mode + natom - 1))
-
-    eig_disp=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
-
-    if [ -z "$eig_disp" ]; then
+    if [ -z "$eig_disp1" ]; then
         echo "Error: Could not extract eigenvector data"
         exit 1
     fi
 
-    arrayname=eigdisp_array${eig_dispNum}
-    local -a "$arrayname"
+    declare -ag "eigdisp_array1"
 
     # Read all components into the array
     while read -r line; do
         read -ra temp_array <<< "$line"
         eigdisp_array+=("${temp_array[@]}")
-    done <<< "$eig_disp"
-
+    done <<< "$eig_disp1"
 
     local eig_squaresum=0
     for eig_component in "${eigdisp_array[@]}"; do
@@ -151,12 +138,55 @@ extract_normalize_eigdisp() {
         normalized_array+=("$normalized_value")
     done
 
+    # Assign the normalized array back to eigdisp_array
+    eigdisp_array1=("${normalized_array[@]}")
+}
+
+
+
+# Function to extract and normalize eigenvector displacements
+extract_normalize_eigdisp2() {
+    local input_file="$1"
+
+    mode_location=$(grep -in "eigen_disp2" "$input_file" | cut -d: -f1)
+
+    if [ -z "$mode_location" ]; then
+        echo "Error: Could not find eigen_disp2 in $input_file"
+        exit 1
+    fi
+
+    local begin_mode=$((mode_location + 1))
+    local end_mode=$(( begin_mode + natom - 1 ))
+
+    eig_disp2=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+
+    if [ -z "$eig_disp2" ]; then
+        echo "Error: Could not extract eigenvector data"
+        exit 1
+    fi
+
+    declare -ag "eigdisp_array2"
+
+    # Read all components into the array
+    while read -r line; do
+        read -ra temp_array <<< "$line"
+        eigdisp_array2+=("${temp_array[@]}")
+    done <<< "$eig_disp2"
+
+    local eig_squaresum=0
+    for eig_component in "${eigdisp_array2[@]}"; do
+        eig_squaresum=$(calculate "$eig_component**2 + $eig_squaresum")
+    done
+    normfact=$(calculate "sqrt($eig_squaresum)")
+
+    local normalized_array=()
+    for i in "${!eigdisp_array2[@]}"; do
+        normalized_value=$(calculate "${eigdisp_array2[i]}/$normfact")
+        normalized_array+=("$normalized_value")
+    done
 
     # Assign the normalized array back to eigdisp_array
-    eigdisp_array=("${normalized_array[@]}")
-
-    # Return the normalized array
-    printf '%s\n' "${eigdisp_array[@]}"
+    eigdisp_array2=("${normalized_array[@]}")
 }
 
 # Function to create perturbed system files
@@ -164,9 +194,11 @@ create_perturbed_files() {
     local iteration="$1"
     local filename="${structure}_${iteration}_vec$vecNum"
     local filename_abi="${filename}.abi"
-
+    
+    echo "${structure}_${iteration}_vec${vecNum}o_DS4_DDB" >> "$datasets_file"
+    echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >> "$datasets_file"
     echo "${filename}.abo" >> "$datasetsAbo_file"
-
+    
     # Extract and perturb cartesian coordinates
     xcart_location=$(grep -n "xcart" "$general_structure_file" | cut -d: -f1)
     if [ -z "$xcart_location" ]; then
@@ -175,16 +207,10 @@ create_perturbed_files() {
     fi
     
     local xcart_start=$((xcart_location + 1))
-    natom=$(grep "natom" "$general_structure_file" | awk '{print $2}')
-    local natom
-    if [ -z "$natom" ]; then
-        echo "Error: Could not find 'natom' in $general_structure_file"
-        exit 1
-    fi
-    
     local xcart_end=$((xcart_start + natom - 1))
     xcart=$(sed -n "${xcart_start},${xcart_end}p" "$general_structure_file")
     
+
     if [ -z "$xcart" ]; then
         echo "Error: Failed to extract xcart coordinates from $general_structure_file"
         exit 1
@@ -195,33 +221,99 @@ create_perturbed_files() {
     local nxcart_array=()
     local displacement_vector=()
     cstep_size=$(calculate "${step_size} * ${iteration}")
-    
-    echo "Displacement vector for ${filename}:"
     for component in $xcart; do
-        local eig_dispcomp="${eigdisp_array[$count]}"
+        local eig_dispcomp="${eigdisp_array1[$count]}"
         perturbation=$(calculate "${eig_dispcomp} * ${cstep_size}")
-        local perturbation
-        nxcart_array+=("$(calculate "${component} + ${perturbation}")")
+        nxcart_array+=("$(calculate "${perturbation}+${component}")")
         displacement_vector+=("$perturbation")
         count=$((count + 1))
-        
-        # Print displacement vector component
-        echo -n "$perturbation "
-        if (( (count % 3) == 0 )); then
-            echo  # New line after every 3 components
-        fi
     done
-    echo  # Ensure we end with a newline
 
     echo "$cstep_size" >> "$xpoints"
-
-
+    echo ""
+    # Echo displacement vector
+    echo "Displacement vector for ${filename}:"
+    for ((i=0; i<${#displacement_vector[@]}; i+=3)); do
+        echo "${displacement_vector[i]} ${displacement_vector[i+1]} ${displacement_vector[i+2]}"
+    done
+    echo ""
+    # Echo new cartesian coordinates
+    echo "New cartesian coordinates for ${filename}:"
+    for ((i=0; i<${#nxcart_array[@]}; i+=3)); do
+        echo "${nxcart_array[i]} ${nxcart_array[i+1]} ${nxcart_array[i+2]}"
+    done
+    echo ""
     # Create ABINIT input file
     create_abinit_input "$filename_abi" "${nxcart_array[@]}"
 
     # Create and submit batch script
     create_batch_script "$filename" "$filename_abi"
 }
+
+# Function to create perturbed system files
+create_perturbedcoupled_files() {
+    local iterationX="$1"
+    local iterationY="$2"
+    local filename="${structure}_${iterationX}_${iterationY}_vec$vecNum"
+    local filename_abi="${filename}.abi"
+
+    echo "${structure}_${iterationX}_${iterationY}_vec${vecNum}o_DS4_DDB" >> "$datasets_file"
+    echo "${structure}_${iterationX}_${iterationY}_vec${vecNum}o_DS5_DDB" >> "$datasets_file"
+    echo "${filename}.abo" >> "$datasetsAbo_file"
+
+     # Extract and perturb cartesian coordinates
+    xcart_location=$(grep -n "xcart" "$general_structure_file" | cut -d: -f1)
+    if [ -z "$xcart_location" ]; then
+        echo "Error: Could not find 'xcart' in $general_structure_file"
+        exit 1
+    fi
+    
+    local xcart_start=$((xcart_location + 1))
+    
+    local xcart_end=$((xcart_start + natom - 1))
+    xcart=$(sed -n "${xcart_start},${xcart_end}p" "$general_structure_file")
+    
+    if [ -z "$xcart" ]; then
+        echo "Error: Failed to extract xcart coordinates from $general_structure_file"
+        exit 1
+    fi
+
+    local count=0
+    local nxcart_array=()
+    local displacement_vector=()
+    cstep_sizeX=$(calculate "${step_sizeX} * ${iterationX}")
+    cstep_sizeY=$(calculate "${step_sizeY} * ${iterationY}" )
+    for component in $xcart; do
+        local eig_dispcompX="${eigdisp_array1[$count]}"
+	    local eig_dispcompY="${eigdisp_array2[$count]}"
+        perturbationX=$(calculate "${eig_dispcompX}*${cstep_sizeX}")
+	    perturbationY=$(calculate "${eig_dispcompY}*${cstep_sizeY}")
+        nxcart_array+=("$(calculate "${component}+${perturbationX}+${perturbationY}")")
+        displacement_vector+=("$(calculate "$perturbationX+$perturbationY")")
+        count=$((count + 1))
+    done
+
+    echo "$cstep_sizeX $cstep_sizeY" >> "$xpoints"
+    echo ""
+    # Echo displacement vector
+    echo "Displacement vector for ${filename}:"
+    for ((i=0; i<${#displacement_vector[@]}; i+=3)); do
+        echo "${displacement_vector[i]} ${displacement_vector[i+1]} ${displacement_vector[i+2]}"
+    done
+    echo ""
+    # Echo new cartesian coordinates
+    echo "New cartesian coordinates for ${filename}:"
+    for ((i=0; i<${#nxcart_array[@]}; i+=3)); do
+        echo "${nxcart_array[i]} ${nxcart_array[i+1]} ${nxcart_array[i+2]}"
+    done
+    echo ""
+    # Create ABINIT input file
+    create_abinit_input "$filename_abi" "${nxcart_array[@]}"
+
+    # Create and submit batch script
+    create_batch_script "$filename" "$filename_abi"
+}
+
 
 # Function to create ABINIT input file
 create_abinit_input() {
@@ -261,7 +353,6 @@ EOF
     fi
 
     # Count the number of coordinate lines (should be equal to natom)
-    natom=$(grep "natom" "$filename_abi" | awk '{print $2}')
     xcart_end=$((xcart_start + natom))
 
     echo "Printing old xcart:"
@@ -281,6 +372,7 @@ EOF
     grep -A "$natom" "^xcart" "$filename_abi"
 
     bash xcartToxred.sh "$filename_abi"
+    echo ""
     # Print the space group of the perturbed cell
     space_group=$(bash findSpaceGroup.sh "$filename_abi")
     local space_group
@@ -289,6 +381,7 @@ EOF
     else
         echo "The space group of cell ${iteration} is $space_group"    
     fi
+    echo ""
     bash xredToxcart.sh "$filename_abi"
 }
 
@@ -314,14 +407,14 @@ EOF
     local job_id
     job_ids+=("$job_id")
     echo "Submitted batch job $job_id"
-    rm "${script}"
+#    rm "${script}"
 }
 
 # Function to wait for all jobs to complete
 wait_for_jobs() {
     for job_id in "${job_ids[@]}"; do
         while squeue -h -j "$job_id" &>/dev/null; do
-            sleep 600  # Check every 10 minutes
+            sleep 60  # Check every minute
         done
         echo "Job $job_id completed"
     done
@@ -333,11 +426,23 @@ check_args "$@"
 read_input_params "$1"
 calc_step_size
 init_output_files
-extract_normalize_eigdisp "$1" "1"
+extract_normalize_eigdisp1 "$1"
+echo ""
+echo "Printing eigdisp_array1:" 
+for ((i=0; i<${#eigdisp_array1[@]}; i+=3)); do
+        echo "${eigdisp_array1[i]} ${eigdisp_array1[i+1]} ${eigdisp_array1[i+2]}"
+done 
+echo ""
 job_ids=()
 # Create perturbed files
 if [ "$phonon_coupling" = 1 ]; then
-    extract_normalize_eigdisp "$1" "2"
+    extract_normalize_eigdisp2 "$1"
+    echo ""
+    echo "Printing eigdisp_array2:" 
+    for ((i=0; i<${#eigdisp_array2[@]}; i+=3)); do
+            echo "${eigdisp_array2[i]} ${eigdisp_array2[i+1]} ${eigdisp_array2[i+2]}"
+    done 
+    echo ""
     for iterationX in $(seq 1 "$grid_dimX"); do 
         for iterationY in $(seq 1 "$grid_dimY"); do
 		create_perturbedcoupled_files "$iterationX" "$iterationY"
@@ -360,6 +465,6 @@ mv "${structure}_*_vec${vecNum}.abi" "datapointAbiFiles_vec${vecNum}/"
 bash dataAnalysisEnergy.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
 echo "Data Analysis is Complete"
 
-#mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
+mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
 
 echo "Total energy calculation for perturbed system completed successfully."
