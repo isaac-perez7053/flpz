@@ -170,7 +170,7 @@ echo "Printing DynFreqs.dat"
 cat "DynFreqs.dat"
 echo "#####################################################"
 
-bash eigVecExtEnergy.sh "DynFreqs.dat" "FCEvecs.dat" "$input_file" "1"
+bash eigVecExtEnergy.sh "DynFreqs.dat" "FCEvecs.dat" "$input_file"
 
 eigVec_nlines=$(grep "eigVec_nlines" "$input_file" | awk '{print $2}')
 mode_location=$(grep -n "eigVec_lines" "$input_file" | cut -d: -f1)
@@ -182,7 +182,7 @@ echo "Calculation of datapoints begins"
 # Calculate datapoints
 mkdir datapointInputFiles
 for eigVec in $eigVec_lines; do
-    bash datapointCalcofEnergy.sh "${input_file}_vec${eigVec}" "$irrep"
+    bash datapointCalcofEnergy.sh "${input_file}_vec${eigVec}" 
     mv "${input_file}_vec${eigVec}" datapointInputFiles
 done
 

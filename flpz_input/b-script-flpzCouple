@@ -8,7 +8,25 @@ cd /home/iperez/projects/Automation || exit
 # FLPZ Coupling Program
 # Executes the FLPZ (Flexoelectric Piezoelectric) perturbation coupling calculations
 
-# Usage: ./flpzCouple.sh <input_file> <datasets1> (optional) <dataset2> (optional)
+# Usage: ./flpzCouple.sh [-e] <input_file> <datasets1> (optional) <dataset2> (optional)
+# Use -e flag to run datapointCalcofEnergy.sh instead of datapointCalcofEnergyPert.sh
+
+# Initialize flag variable
+run_energy=false
+
+# Parse command line options
+while getopts "e" opt; do
+  case $opt in
+    e)
+      run_energy=true
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
 
 # Extraction of variables
 read_input_params() {
@@ -65,6 +83,8 @@ handle_files() {
             "energy/datapointCalcofEnergy.sh"
             "energy/dataAnalysisEnergy.sh"
             "shared/xredToxcart.sh"
+            "shared/xcartToxred.sh"
+            "shared/xCartxRed.py"
             "shared/findAngle.py"
             "shared/findSpaceGroup.sh"
             "polynomialFitting/polynomialFitting2D3D.py"
@@ -82,6 +102,8 @@ handle_files() {
             "datapointCalcofEnergy.sh"
             "dataAnalysisEnergy.sh"
             "xredToxcart.sh"
+            "xcartToxred.sh"
+            "xCartxRed.sh"
             "findAngle.py"
             "findSpaceGroup.sh"
             "polynomialFitting2D3D.py"
@@ -118,36 +140,60 @@ echo "eig_disp2"
 echo "$eig_disp2" 
 } >> "$input_file"
 
-#TODO, write a conditional that checks which cell is compatible with which. For example, which cell is bigger. Just compare natom. 
+echo "Prining input_file"
+cat "$input_file"
 
 # Initialization of input data for surface fitting. Stored in a file name 3D_coordinates.dat
-bash onAxisDataPoints.sh "$(bash totEnergytoDat.sh "$inputData_1" | awk '{print $5}' | sed 's/.*\///')" "$(bash totEnergytoDat.sh "$inputData_2" | awk '{print $5}' | sed 's/.*\///')"
+bash onAxisDataPoints.sh "$(bash totEnergytoDat.sh "$inputData_1" \
+| awk '{print $5}' \
+| sed 's/.*\///')" "$(bash totEnergytoDat.sh "$inputData_2" \
+| awk '{print $5}' \
+| sed 's/.*\///')"
 
-# This line fo code will take the old eigendisplacement vector and the new target cell and will not only map which atoms are which in the new cell, but will convert
+echo "Printing the contents of 3D_coordinates.dat"
+cat "3D_coordinates.dat"
+
+# This line of code will take the old eigendisplacement vector and the new target cell and will not only map which atoms are which in the new cell, but will convert
 # the old eigendisplacement vector to be valid for the new cell. 
+
 if [ "$(echo "${eig_disp1}" | wc -l)" -gt "$(echo "${eig_disp2}" | wc -l)" ]; then
-    neweig_disp2="$(bash eigVecExtension.sh "$eig_disp2" "$(bash transformCell.sh "$inputIrrep_2" "$inputIrrep_1" | sed -n '/Mapping =/,/^$/p' | tail -n +2 | awk '{print $1}' | grep '^[0-9]*$')")"
+    echo "eig_disp1 was greater than eig_disp2"
+    neweig_disp2="$(bash eigVecExtension.sh "$eig_disp2" "$(bash transformCell.sh "$inputIrrep_2" "$inputIrrep_1" \
+    | sed -n '/Mapping =/,/^$/p' \
+    | tail -n +2 \
+    | awk '{print $1}' \
+    | grep '^[0-9]*$')")"
+
     #Update the eigendisplacement value in the input file. 
     sed -i '' "s/${eig_disp2}/${neweig_disp2}/g" "$input_file"
 else
-    neweig_disp1="$(bash eigVecExtension.sh "$eig_disp1" "$(bash transformCell.sh "$inputIrrep_1" "$inputIrrep_2" | sed -n '/Mapping =/,/^$/p' | tail -n +2 | awk '{print $1}' | grep '^[0-9]*$')")"
+    echo "eig_disp2 was great than eig_disp1"
+    neweig_disp1="$(bash eigVecExtension.sh "$eig_disp1" "$(bash transformCell.sh "$inputIrrep_1" "$inputIrrep_2" \
+    | sed -n '/Mapping =/,/^$/p' \
+    | tail -n +2 \
+    | awk '{print $1}' \
+    | grep '^[0-9]*$')")"
+
     #Update the eigendisplacement value in the input file. 
     sed -i '' "s/${eig_disp1}/${neweig_disp1}/g" "$input_file"
 fi 
 
 # Calculate datapoints and store points into 3D_coordinates.dat 
-bash datapointCalcofEnergyCouple.sh "$input_file" "$irrep_1" "$irrep_2"
-
-# Extract the datapoints data into a matlab file. 
-bash dataAnalysisCouple.sh 
+if [ "$run_energy" = true ]; then
+  bash datapointCalcofEnergy.sh "$input_file" 
+else
+  bash datapointCalcofPert.sh "$input_file"
+fi
 
 # Put output datapoints of datapointCalcofEnergyCouple.sh into 3D_coordinates.dat
-
-output >> 3D_coordinates.dat 
+matlabTodat.sh "Datasets_vec1.m" | awk '{print $5}' >> 3D_coordinates.dat 
 
 # Fit data to a surface
-polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" "$(bash isoInvariant.sh "$input_file" "$irrep_1" "$irrep_2")")"
+polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" \
+"$(bash isoInvariant.sh "$input_file" "$irrep_1" "$irrep_2")")"
+
 echo "$polynomialFittingOut"
 echo "The equation of the fitted surface is:" 
-echo "$polynomialFittingOut"| sed -n '/3D Fitting: All terms/,/MSE/p' | grep -v -e '3D Fitting: All terms' -e 'MSE'
+echo "$polynomialFittingOut"| sed -n '/3D Fitting: All terms/,/MSE/p' \
+| grep -v -e '3D Fitting: All terms' -e 'MSE'
 
