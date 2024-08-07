@@ -9,7 +9,6 @@ if [ "$#" -ne 3 ]; then
     exit 1
 fi
 
-
 isoInput="isoInputInv.txt"
 isoOutput="iso.log"
 input_file="$1"
@@ -26,7 +25,7 @@ read_input_params() {
 
 # Create FINDSYM input file
 create_invariant_input() {
-    cat << EOF > "$isoInput"
+    cat <<EOF >"$isoInput"
 VALUE PARENT $(bash findSpaceGroup.sh "$general_structure_file")
 VALUE IRREP ${irrep_1} ${irrep_2}
 Value degree ${min_degree} ${max_degree}
@@ -39,7 +38,7 @@ read_input_params
 create_invariant_input
 
 # Run iso program and process output
-iso < "$isoInput" > "$isoOutput" 2>&1
+iso <"$isoInput" >"$isoOutput" 2>&1
 
 awk '
     /Deg Invariants/,/^$/ {
