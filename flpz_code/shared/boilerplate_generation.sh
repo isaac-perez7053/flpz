@@ -2,7 +2,7 @@
 # Creates the boilerplate, a dependency for the SMODES calculation
 # Usage: ./boilerplate_generation.sh <input_file>
 
-set -e  # Exit immediately if a command exits with a non-zero status
+set -e # Exit immediately if a command exits with a non-zero status
 
 # Function to check correct number of arguments
 check_args() {
@@ -16,10 +16,10 @@ check_args() {
 read_input_params() {
     local input_file="$1"
     general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
-    time_limit=$(grep "time_limit" "$input_file" | awk '{print $2}')
+#   time_limit=$(grep "time_limit" "$input_file" | awk '{print $2}')
     ntypat=$(grep "ntypat" "$general_structure_file" | awk '{print $2}')
     bScriptPreamble=$(grep "sbatch_preamble" "$input_file" | awk '{print $2}')
-    
+
 }
 
 # Function to create boilerplate directory and copy pseudopotentials
@@ -29,14 +29,16 @@ setup_boilerplate() {
         echo "Error: General structure file '$general_structure_file' not found"
         exit 1
     fi
-    local pp_dirpath=$(grep "pp_dirpath" "$general_structure_file" | awk '{print $2}' | sed 's/[,"]//g')
+    pp_dirpath=$(grep "pp_dirpath" "$general_structure_file" | awk '{print $2}' | sed 's/[,"]//g')
+    local pp_dirpath
     if [ -z "$pp_dirpath" ]; then
         echo "Error: pp_dirpath not found in $general_structure_file"
         exit 1
     fi
 
     for i in $(seq 2 $((ntypat + 1))); do
-        local pseudos=$(grep "pseudos" "$general_structure_file" | awk "{print \$$i}" | sed 's/[,"]//g')
+        pseudos=$(grep "pseudos" "$general_structure_file" | awk "{print \$$i}" | sed 's/[,"]//g')
+        local pseudos
         cp "${pp_dirpath}${pseudos}" boilerplate/
     done
 }
@@ -44,7 +46,7 @@ setup_boilerplate() {
 # Function to generate jobscript.sh
 generate_jobscript() {
     local script="boilerplate/jobscript.sh"
-    cat << EOF > "$script"
+    cat <<EOF >"$script"
 #!/bin/bash
 $preamble
 
@@ -65,7 +67,8 @@ prepare_template() {
     local vars=("rprim" "xred" "xcart")
     for var in "${vars[@]}"; do
         if grep -q "^[[:space:]]*$var" boilerplate/template.abi; then
-            local start_line=$(grep -n "$var" boilerplate/template.abi | cut -d: -f1)
+            start_line=$(grep -n "$var" boilerplate/template.abi | cut -d: -f1)
+            local start_line
             local end_line
             if [ "$var" = "rprim" ]; then
                 end_line=$((start_line + 3))

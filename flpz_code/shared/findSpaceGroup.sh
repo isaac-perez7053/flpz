@@ -2,8 +2,8 @@
 
 # Find Space Group Script
 # Finds the space group of a crystal system using isotropy
-# Note, this script has seemed to only work for abi files in reduced coordinates, so it is recommended that 
-# you use xcartToxred.sh before using this script. 
+# Note, this script has seemed to only work for abi files in reduced coordinates, so it is recommended that
+# you use xcartToxred.sh before using this script.
 
 # Usage: ./findSpaceGroup.sh <abi_file>
 
@@ -22,8 +22,8 @@ rprim_location=$(grep -n "rprim" "$input_file" | cut -d: -f1)
 # Extract rprim vectors
 extract_rprim() {
     local line=$1
-    sed -n "$((rprim_location + line))p" "$input_file" | \
-    awk '{printf "(%s, %s, %s)\n", $1, $2, $3}'
+    sed -n "$((rprim_location + line))p" "$input_file" |
+        awk '{printf "(%s, %s, %s)\n", $1, $2, $3}'
 }
 
 nrprim1=$(extract_rprim 1)
@@ -84,7 +84,6 @@ for item in $typat_line; do
     expanded_typat+=($expanded)
 done
 
-
 # Calculate angles
 calculate_angle() {
     ./findAngle.py "$1" "$2"
@@ -94,9 +93,8 @@ alpha=$(calculate_angle "$nrprim2" "$nrprim3")
 beta=$(calculate_angle "$nrprim1" "$nrprim3")
 gamma=$(calculate_angle "$nrprim1" "$nrprim2")
 
-
 # Create FINDSYM input file
-cat << EOF > "$fsInput_file"
+cat <<EOF >"$fsInput_file"
 !useKeyWords
 !occupationTolerance
 0.01
@@ -111,7 +109,7 @@ $coordinates
 EOF
 
 # Run FINDSYM and extract space group number
-findsym "$fsInput_file"  | grep "_symmetry_Int_Tables_number" | awk '{print $2}'
+findsym "$fsInput_file" | grep "_symmetry_Int_Tables_number" | awk '{print $2}'
 
 # Clean up
 rm "$fsInput_file"

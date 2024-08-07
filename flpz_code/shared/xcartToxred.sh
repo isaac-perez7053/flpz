@@ -1,5 +1,5 @@
 #!/bin/bash
-# Converts reduced coordinates (xred) to Cartesian coordinates (xcart)
+# Converts reduced coordinates (xred) to Cartesian coordinates (xcart) for an abi file 
 # Usage: ./xredToxcart.sh <input_file>
 
 # Function to check correct number of arguments
@@ -71,7 +71,7 @@ update_input_file() {
         -e '/^rprim/,+3d' \
         -e '/^xcart/,+'"$natom"'d' \
         -e '/^xred/,+'"$natom"'d' \
-        "$input_file" > "$temp_file"
+        "$input_file" >"$temp_file"
 
     # Insert new values
     awk -v acell="$acell" -v rprim="$rprim" -v coords="$new_coords" -v coord_type="$coord_type" -v natom="$natom" '
@@ -95,21 +95,20 @@ update_input_file() {
         next
     }
     {print}
-    ' "$temp_file" > "${input_file}.new"
+    ' "$temp_file" >"${input_file}.new"
 
     if [ -s "${input_file}.new" ]; then
         mv "${input_file}.new" "$input_file"
         echo "Input file updated successfully."
     else
         echo "Error: New file is empty. Original file not modified."
-        cat "${input_file}.new"  # Print content of new file for debugging
+        cat "${input_file}.new" # Print content of new file for debugging
         rm "${input_file}.new"
         exit 1
     fi
 
     rm "$temp_file"
 }
-
 
 # Main execution
 check_args "$@"
