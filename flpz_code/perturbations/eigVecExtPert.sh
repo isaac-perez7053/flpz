@@ -18,11 +18,11 @@ num_phon=$(grep "num_phon" "$input_file" | awk '{print $2}')
 mode_location=$(grep -n "calc_phon" "$input_file" | cut -d: -f1)
 calc_phon=""
 if [ -n "$num_phon" ] && [ -n "$mode_location" ]; then
-    calc_phon=$(sed -n "$((mode_location+1)),$((mode_location+num_phon))p" "$input_file")
+    calc_phon=$(sed -n "$((mode_location + 1)),$((mode_location + num_phon))p" "$input_file")
 fi
 
 # Remove the first line of dynFreqs_file (assumed to be a header)
-sed '1d' "$dynFreqs_file" > "tmpfile.abi" && mv "tmpfile.abi" "$dynFreqs_file"
+sed '1d' "$dynFreqs_file" >"tmpfile.abi" && mv "tmpfile.abi" "$dynFreqs_file"
 
 # Find unstable phonons (excluding acoustic modes)
 find_unstable_phonons() {
@@ -42,8 +42,8 @@ unstable_nlines=$(echo "$unstable_phonons" | wc -w)
 
 echo "There are $unstable_nlines total unstable phonons"
 
-# Check if requested phonons are within range and match with those found. Use a filtering method 
-# if the user requests only a certain number of unstable phonons. 
+# Check if requested phonons are within range and match with those found. Use a filtering method
+# if the user requests only a certain number of unstable phonons.
 eigVec_lines=""
 if [ -n "$num_phon" ]; then
     for phonon in $unstable_phonons; do
@@ -57,7 +57,7 @@ else
     eigVec_lines=$unstable_phonons
 fi
 
-# Recaclculate the number of eigenvector lines in the input file. 
+# Recaclculate the number of eigenvector lines in the input file.
 eigVec_nlines=$(echo "$eigVec_lines" | wc -w)
 
 echo "Extracting $eigVec_nlines unstable phonons: $eigVec_lines"
@@ -66,17 +66,17 @@ echo "Extracting $eigVec_nlines unstable phonons: $eigVec_lines"
 create_input_files() {
     local file_num=$1
     local output_file="${input_file}_vec${file_num}"
-    
+
     cp "$input_file" "$output_file"
-    echo "vecNum ${file_num}" >> "$output_file"
-    echo "eigen_disp1" >> "$output_file"
-    
+    echo "vecNum ${file_num}" >>"$output_file"
+    echo "eigen_disp1" >>"$output_file"
+
     sed -n "${file_num}p" "$fceVecs_file" |
-    awk '{
+        awk '{
         for (i=1; i<=NF; i+=3) {
             print $i, $(i+1), $(i+2)
         }
-    }' >> "$output_file"
+    }' >>"$output_file"
 }
 
 for file_num in $eigVec_lines; do
@@ -88,6 +88,6 @@ done
     echo "eigVec_nlines $eigVec_nlines"
     echo "eigVec_lines"
     echo "$eigVec_lines"
-} >> "$input_file"
+} >>"$input_file"
 
 echo "Eigenvalue vector extraction completed successfully."
