@@ -20,15 +20,18 @@ temp_file=$(mktemp)
 # Process the file
 while IFS= read -r line
 do
-    # Split the line into two parts
-    first_part=$(echo "$line" | awk '{print $1}')
-    second_part=$(echo "$line" | awk '{print $2}')
+    # Check if the line contains scientific notation
+    if [[ $line =~ -?[0-9]+\.[0-9]+E\+[0-9]+ ]]; then
+        # Extract the number and convert it
+        number=$(echo "$line" | awk '{print $1}')
+        decimal=$(awk 'BEGIN {printf "%.10f\n", '"$number"'}')
 
-    # Convert scientific notation to decimal
-    decimal=$(printf "%.10f" "$second_part")
-
-    # Print the result to the temporary file
-    echo "$first_part $decimal" >> "$temp_file"
+        # Replace the scientific notation with the decimal
+        echo "$decimal" >> "$temp_file"
+    else
+        # If no scientific notation, just copy the line
+        echo "$line" >> "$temp_file"
+    fi
 done < "$filename"
 
 # Replace the original file with the temporary file
