@@ -12,7 +12,7 @@
 # Function to clean up temporary files
 cleanup() {
     echo "Cleaning up temporary files..."
-    rm -f anaddbF_*.files anaddbP_*.files anaddb*.abi _anaddb.nc fort.7 output.log
+    rm -f anaddbF_*.files anaddbP_*.files anaddb*.abi _anaddb.nc fort.7 output.log flexoanaddb.abi piezoanaddb.abi
 }
 
 # Set trap to call cleanup function on script exit

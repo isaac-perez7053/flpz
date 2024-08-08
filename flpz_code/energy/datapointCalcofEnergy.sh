@@ -433,7 +433,7 @@ EOF
 # Function to wait for all jobs to complete
 wait_for_jobs() {
     start_time=$(date +%s)
-    timeout=10800 # 3 hours in seconds
+    timeout=43200 # 12 hours in seconds
 
     while true; do
         all_completed=true
