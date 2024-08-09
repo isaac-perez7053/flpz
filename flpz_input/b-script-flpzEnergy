@@ -2,7 +2,7 @@
 
 
 # Ensure current directory is set
-cd /home/iperez/projects/Automation || exit
+cd /home/iperez/projects/flpz || exit
 
 # FLPZ Energy Program
 # Executes the FLPZ (Flexoelectric Piezoelectric) energy calculations
