@@ -23,19 +23,27 @@ def reshape_rprimxCxR(rprim_str, xCxR_str):
 def calculateXred(rprim, xcart, a, b, c):
     # Scale the primitive vectors by acell
     rprim_scaled = rprim.copy()  # Created a copy to avoid modifying the original
+    natom, num_cords = xred.shape
+    xred=np.empty((natom, num_cords))
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
     rprim_scaled[2] *= c
-    xred = np.dot(xcart, np.linalg.inv(rprim_scaled))
+    for i in range(natom):
+        xred[i] = np.dot(np.linalg.inv(rprim_scaled), xcart[i].T).T
+    print(xred)
     return xred
 
 def calculateXcart(rprim, xred, a, b, c): 
     # Scale the primitive vectors by acell
     rprim_scaled = rprim.copy()  # Created a copy to avoid modifying the original
+    natom, num_cords = xred.shape
+    xcart=np.empty((natom, num_cords))
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
     rprim_scaled[2] *= c
-    xcart = np.dot(xred, rprim_scaled)
+    for i in range(natom):  
+        xcart[i] = np.dot(rprim_scaled, xred[i].T).T
+    print(xcart)
     return xcart
 
 
