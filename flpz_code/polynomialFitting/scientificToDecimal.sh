@@ -21,10 +21,17 @@ temp_file=$(mktemp)
 while IFS= read -r line
 do
     # Check if the line contains scientific notation
-    if [[ $line =~ -?[0-9]+\.[0-9]+E\+[0-9]+ ]]; then
+    if [[ $line =~ -?[0-9]+\.[0-9]+[Ee][-+][0-9]+ ]]; then
         # Extract the number and convert it
         number=$(echo "$line" | awk '{print $1}')
-        decimal=$(awk 'BEGIN {printf "%.10f\n", '"$number"'}')
+        
+        # Check if the absolute value of the exponent is 10 or greater
+        exponent=$(echo "$number" | awk -F 'E' '{print $2}' | sed 's/^+//')
+        if [[ $exponent =~ ^-[1-9][0-9]+$ ]] || [[ $exponent -le -10 ]]; then
+            decimal="0.0"
+        else
+            decimal=$(awk 'BEGIN {printf "%.10f\n", '"$number"'}')
+        fi
 
         # Replace the scientific notation with the decimal
         echo "$decimal" >> "$temp_file"
