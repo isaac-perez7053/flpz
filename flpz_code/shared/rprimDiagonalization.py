@@ -5,7 +5,7 @@ import numpy as np
 import subprocess
 
 def parse_args():
-    if len(sys.argv) != 1:
+    if len(sys.argv) != 2:
         print("Usage: python rprimDiagonalization.py <rprim>")
         sys.exit(1)
     try:
@@ -58,10 +58,11 @@ print(np.allclose(A, P @ D @ P_inv))
 
 rprim_str = parse_args()
 rprim= reshape_rprim(rprim_str)
-if (has_orthogonal_rows(rprim) != True):
+if has_orthogonal_rows(rprim):
     P, D, P_inv = diagonalize(rprim)
     for row in D:
         print (" ".join(f"{x:.10f}" for x in row))
+    
 else:
     for row in rprim:
         print (" ".join(f"{x:.10f}" for x in row))

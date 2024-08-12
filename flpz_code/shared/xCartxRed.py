@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 def parse_args():
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 8:
         print("Usage: python xCartxRed.py <mode> <rprim> <xcart/xred> <acella> <acellb> <acellc> <natom>")
         sys.exit(1)
     try:

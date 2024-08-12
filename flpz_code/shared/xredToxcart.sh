@@ -118,6 +118,8 @@ update_input_file() {
 check_args "$@"
 input_file="$1"
 extract_data "$input_file"
+echo "calculate_xcart vars"
+echo "rprim: $rprim, xred, $xred, a, $a, b, $b, c, $c, natom, $natom"
 xcart=$(calculate_xcart "xcart" "$rprim" "$xred" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g')
 echo "xcart"
 echo "$xcart"
