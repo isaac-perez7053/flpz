@@ -23,7 +23,7 @@ def reshape_rprimxCxR(rprim_str, xCxR_str):
 def calculateXred(rprim, xcart, a, b, c):
     # Scale the primitive vectors by acell
     rprim_scaled = rprim.copy()  # Created a copy to avoid modifying the original
-    natom, num_cords = xred.shape
+    natom, num_cords = xcart.shape
     xred=np.empty((natom, num_cords))
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b

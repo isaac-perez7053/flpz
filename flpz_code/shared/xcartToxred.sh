@@ -114,5 +114,5 @@ update_input_file() {
 check_args "$@"
 input_file="$1"
 extract_data "$input_file"
-xred=$(calculate_xcart "xred" "$rprim" "$xcart" "$a" "$b" "$c" "$natom")
+xred=$(calculate_xcart "xred" "$rprim" "$xcart" "$a" "$b" "$c" "$natom" | sed 's/\[\]//g' )
 update_input_file "$input_file" "$xred" "xred"
