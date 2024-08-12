@@ -59,6 +59,10 @@ calculate_xcart() {
     python3 ./xCartxRed.py "$@" | tr '\n' ' ' | sed 's/ $//'
 }
 
+calculate_rprimDiagonal() {
+    python3 ./rprimDiagonalization.py "$@" | tr '\n' ' ' | sed 's/ $//'
+}
+
 # Function to update the input file with new xcart coordinates
 update_input_file() {
     local input_file="$1"
@@ -110,6 +114,9 @@ update_input_file() {
     rm "$temp_file"
 }
 
+
+
+
 # Main execution
 check_args "$@"
 input_file="$1"
@@ -117,4 +124,9 @@ extract_data "$input_file"
 xred=$(calculate_xcart "xred" "$rprim" "$xcart" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g' )
 echo "xred"
 echo "$xred"
+echo "rprim"
+echo "$rprim"
+rprim=$(calculate_rprimDiagonal "$rprim")
+echo "rprimDiag"
+echo "$rprim"
 update_input_file "$input_file" "$xred" "xred"

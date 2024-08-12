@@ -63,6 +63,7 @@ handle_files() {
         "shared/findAngle.py"
         "polynomialFitting/polynomialFitting2D3D.py"
         "phononCoupling/transformCell_Map.py"
+        "shared/rprimDiagonalization.py"
     )
 
     # Iterate down each python script in the array above and

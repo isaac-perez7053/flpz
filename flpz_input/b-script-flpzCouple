@@ -113,6 +113,7 @@ handle_files() {
             "phononCoupling/transformCell_Map.py"
             "phononCoupling/transformCellpy.sh"
             "phononCoupling/matlabTodat.sh"
+            "shared/rprimDiagonalization.py"
         )
     elif [ "$2" = "rm" ]; then
         local files=(
@@ -137,6 +138,7 @@ handle_files() {
             "transformCell_Map.py"
             "transformCellpy.sh"
             "matlabTodat.sh"
+            "rprimDiagonalization.py"
         )
     fi
     for file in "${files[@]}"; do
