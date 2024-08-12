@@ -69,7 +69,7 @@ handle_files() {
     # ensure each script has executable permissions
     for file in "${files[@]}"; do
         if [ ! -x "script.py" ]; then
-            chmod +x "${source_dir}/{$file}"
+            chmod +x "$source_dir/$file"
         fi
     done
 }
