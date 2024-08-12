@@ -56,18 +56,7 @@ extract_data() {
 }
 
 calculate_xcart() {
-    python3 ./xCartxRed.py "$@" | awk '
-    NR == 1 {
-        if (NF == 2) {
-            print $0 " 0.0000000000"
-        } else {
-            print $0
-        }
-        next
-    }
-    {
-        print $0
-    }' | tr '\n' ' ' | sed 's/ $//'
+    python3 ./xCartxRed.py "$@" | tr '\n' ' ' | sed 's/ $//'
 }
 
 # Function to update the input file with new xcart coordinates
@@ -87,7 +76,7 @@ update_input_file() {
     # Insert new values
     awk -v acell="$acell" -v rprim="$rprim" -v coords="$new_coords" -v coord_type="$coord_type" -v natom="$natom" '
     BEGIN {
-        split(coords, c, /[[:space:]]+/)
+        split(coords, c)
         split(rprim, r)
         values_printed = 0
     }
@@ -99,14 +88,8 @@ update_input_file() {
         print r[4], r[5], r[6]
         print r[7], r[8], r[9]
         print coord_type
-        for (i=1; i<=natom*3; i+=3) {
-            if (c[i] == "" || c[i+1] == "" || c[i+2] == "") {
-                printf "%-10s %-10s %-10s\n", (c[i] == "" ? "0.0000000000" : c[i]), 
-                                              (c[i+1] == "" ? "0.0000000000" : c[i+1]), 
-                                              (c[i+2] == "" ? "0.0000000000" : c[i+2])
-            } else {
-                printf "%-10s %-10s %-10s\n", c[i], c[i+1], c[i+2]
-            }
+        for (i=natom*3+1; i<=natom*6; i+=3) {
+            print c[i], c[i+1], c[i+2]
         }
         values_printed = 1
         next
@@ -132,5 +115,6 @@ check_args "$@"
 input_file="$1"
 extract_data "$input_file"
 xred=$(calculate_xcart "xred" "$rprim" "$xcart" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g' )
+echo "xred"
+echo "$xred"
 update_input_file "$input_file" "$xred" "xred"
-bash scientificToDecimal.sh "$input_file"

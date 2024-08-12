@@ -23,7 +23,7 @@ def reshape_rprimxCxR(rprim_str, xCxR_str):
 def calculateXred(rprim, xcart, a, b, c):
     # Scale the primitive vectors by acell
     rprim_scaled = rprim.copy()  # Created a copy to avoid modifying the original
-    natom, num_cords = xcart.shape
+    natom, num_cords = xred.shape
     xred=np.empty((natom, num_cords))
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
@@ -36,7 +36,7 @@ def calculateXred(rprim, xcart, a, b, c):
 def calculateXcart(rprim, xred, a, b, c): 
     # Scale the primitive vectors by acell
     rprim_scaled = rprim.copy()  # Created a copy to avoid modifying the original
-    natom, num_cords = xred.shape
+    natom, num_cords = xcart.shape
     xcart=np.empty((natom, num_cords))
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
@@ -53,10 +53,10 @@ rprim, xCxR = reshape_rprimxCxR(rprim_str, xCxR_str)
 if mode.lower() == "xred":
     result = calculateXred(rprim, xCxR, a, b, c)
     for row in result:
-        print(" ".join(f"{x:.10f}" for x in row) + " " * (30 - len(" ".join(f"{x:.10f}" for x in row))))
+        print(" ".join(f"{x:.10f}" for x in row))
 elif mode.lower() == "xcart":
     result = calculateXcart(rprim, xCxR, a, b, c)
     for row in result:
-        print(" ".join(f"{x:.10f}" for x in row) + " " * (30 - len(" ".join(f"{x:.10f}" for x in row))))
+        print(" ".join(f"{x:.10f}" for x in row))
 else:
     print("Invalid mode. Please use 'xred' or 'xcart'.")
