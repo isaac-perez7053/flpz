@@ -21,25 +21,23 @@ temp_file=$(mktemp)
 while IFS= read -r line
 do
     # Process each number in the line
-    processed_line=""
     for number in $line
     do
         if [[ $number =~ -?[0-9]+\.[0-9]+[Ee][-+][0-9]+ ]]; then
             # Extract the exponent and check its value
             exponent=$(echo "$number" | awk -F '[Ee]' '{print $2}' | sed 's/^+//')
             if [[ $exponent =~ ^-[1-9][0-9]+$ ]] || [[ $exponent -le -11 ]]; then
-                decimal="0.0000000000"
+                replacement="0.0000000000"
             else
-                decimal=$(awk 'BEGIN {printf "%.10f", '"$number"'}')
+                replacement=$(awk 'BEGIN {printf "%.10f", '"$number"'}')
             fi
-            processed_line+="$decimal "
-        else
-            processed_line+="$number "
+            # Use sed to replace the number in the line
+            line=$(echo "$line" | sed "s/$number/$replacement/")
         fi
     done
 
     # Write the processed line to the temp file
-    echo "${processed_line%" "}" >> "$temp_file"
+    echo "$line" >> "$temp_file"
 done < "$filename"
 
 # Replace the original file with the temporary file

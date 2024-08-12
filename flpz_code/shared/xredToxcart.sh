@@ -56,7 +56,18 @@ extract_data() {
 }
 
 calculate_xcart() {
-    python3 ./xCartxRed.py "$@" | tr '\n' ' ' | sed 's/ $//'
+    python3 ./xCartxRed.py "$@" | awk '
+    NR == 1 {
+        if (NF < 3) {
+            printf "%-10s %-10s %-10s\n", $1, $2, (NF == 2 ? $2 : "0.0000000000")
+        } else {
+            print $0
+        }
+        next
+    }
+    {
+        print $0
+    }' | tr '\n' ' ' | sed 's/ $//'
 }
 
 # Function to update the input file with new xcart coordinates
@@ -89,7 +100,13 @@ update_input_file() {
         print r[7], r[8], r[9]
         print coord_type
         for (i=1; i<=natom*3; i+=3) {
-            print c[i], c[i+1], c[i+2]
+            if (c[i] == "" || c[i+1] == "" || c[i+2] == "") {
+                printf "%-10s %-10s %-10s\n", (c[i] == "" ? "0.0000000000" : c[i]), 
+                                              (c[i+1] == "" ? "0.0000000000" : c[i+1]), 
+                                              (c[i+2] == "" ? "0.0000000000" : c[i+2])
+            } else {
+                printf "%-10s %-10s %-10s\n", c[i], c[i+1], c[i+2]
+            }
         }
         values_printed = 1
         next

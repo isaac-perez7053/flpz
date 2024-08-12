@@ -53,10 +53,10 @@ rprim, xCxR = reshape_rprimxCxR(rprim_str, xCxR_str)
 if mode.lower() == "xred":
     result = calculateXred(rprim, xCxR, a, b, c)
     for row in result:
-        print(" ".join(f"{x:.10f}" for x in row))
+        print(" ".join(f"{x:.10f}" for x in row) + " " * (30 - len(" ".join(f"{x:.10f}" for x in row))))
 elif mode.lower() == "xcart":
     result = calculateXcart(rprim, xCxR, a, b, c)
     for row in result:
-        print(" ".join(f"{x:.10f}" for x in row))
+        print(" ".join(f"{x:.10f}" for x in row) + " " * (30 - len(" ".join(f"{x:.10f}" for x in row))))
 else:
     print("Invalid mode. Please use 'xred' or 'xcart'.")
