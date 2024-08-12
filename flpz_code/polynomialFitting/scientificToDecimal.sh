@@ -27,7 +27,7 @@ do
         
         # Check if the absolute value of the exponent is 10 or greater
         exponent=$(echo "$number" | awk -F 'E' '{print $2}' | sed 's/^+//')
-        if [[ $exponent =~ ^-[1-9][0-9]+$ ]] || [[ $exponent -le -10 ]]; then
+        if [[ $exponent =~ ^-[1-9][0-9]+$ ]] || [[ $exponent -le -11 ]]; then
             decimal="0.0"
         else
             decimal=$(awk 'BEGIN {printf "%.10f\n", '"$number"'}')
