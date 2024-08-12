@@ -36,9 +36,10 @@ def has_orthogonal_rows(matrix, tol=1e-8):
 def diagonalize(matrix):
     # Compute the eigenvalues and eigenvectors
     eigenvalues, eigenvectors = np.linalg.eig(matrix)
+    real_eigenvalues = eigenvalues.real
     
     # Construct the diagonal matrix of eigenvalues
-    D = np.diag(eigenvalues)
+    D = np.diag(real_eigenvalues)
     
     # The columns of eigenvectors are the eigenvectors
     P = eigenvectors
@@ -61,7 +62,7 @@ rprim= reshape_rprim(rprim_str)
 if has_orthogonal_rows(rprim):
     P, D, P_inv = diagonalize(rprim)
     for row in D:
-        print (" ".join(f"{x:.10f}" for x in row))
+        print (" ".join(f"{x.real:.10f}" for x in row))
     
 else:
     for row in rprim:

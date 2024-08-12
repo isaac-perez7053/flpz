@@ -120,12 +120,6 @@ input_file="$1"
 extract_data "$input_file"
 echo "calculate_xcart vars"
 echo "rprim: $rprim, xred, $xred, a, $a, b, $b, c, $c, natom, $natom"
-xcart=$(calculate_xcart "xcart" "$rprim" "$xred" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g')
-echo "xcart"
-echo "$xcart"
-echo "rprim"
-echo "$rprim"
 rprim=$(calculate_rprimDiagonal "$rprim")
-echo "rprimDiag"
-echo "$rprim"
+xcart=$(calculate_xcart "xcart" "$rprim" "$xred" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g')
 update_input_file "$input_file" "$xcart" "xcart"
