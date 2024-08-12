@@ -116,3 +116,4 @@ input_file="$1"
 extract_data "$input_file"
 xred=$(calculate_xcart "xred" "$rprim" "$xcart" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g' )
 update_input_file "$input_file" "$xred" "xred"
+bash scientificToDecimal.sh "$input_file"

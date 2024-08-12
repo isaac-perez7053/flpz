@@ -47,6 +47,7 @@ handle_files() {
             "shared/findAngle.py"
             "shared/findSpaceGroup.sh"
             "shared/xCartxRed.py"
+            "polynomialFitting/scientificToDecimal.sh"
         )
     elif [ "$2" = "rm" ]; then 
         local files=(
@@ -62,6 +63,7 @@ handle_files() {
             "findAngle.py"
             "findSpaceGroup.sh"
             "xCartxRed.py"
+            "scientificToDecimal.sh"
         )
     fi 
     for file in "${files[@]}"; do
