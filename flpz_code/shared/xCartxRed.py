@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 def parse_args():
-    if len(sys.argv) < 8:
+    if len(sys.argv) != 7:
         print("Usage: python xCartxRed.py <mode> <rprim> <xcart/xred> <acella> <acellb> <acellc> <natom>")
         sys.exit(1)
     try:
@@ -36,7 +36,7 @@ def calculateXred(rprim, xcart, a, b, c):
 def calculateXcart(rprim, xred, a, b, c): 
     # Scale the primitive vectors by acell
     rprim_scaled = rprim.copy()  # Created a copy to avoid modifying the original
-    natom, num_cords = xcart.shape
+    natom, num_cords = xred.shape
     xcart=np.empty((natom, num_cords))
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
