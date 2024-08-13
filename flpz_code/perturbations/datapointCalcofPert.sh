@@ -43,7 +43,7 @@ END
 
 # Function to check correct number of arguments
 check_args() {
-    if [ "$#" -ne 1 ] || [ "$#" -ne 2 ]; then
+    if [ "$#" -ne 1 ] && [ "$#" -ne 2 ]; then
         echo "Usage: $0 [-p] <input_file>"
         exit 1
     fi

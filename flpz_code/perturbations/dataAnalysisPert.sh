@@ -60,7 +60,7 @@ command_exists() {
 }
 
 ## Check if the correct number of arguments are provided
-if [ "$#" -ne 4 ] || [ "$#" -ne 5 ]; then
+if [ "$#" -ne 4 ] && [ "$#" -ne 5 ]; then
     echo "Usage: $0 [-p] <derivative_db_file> <x_points_file> <abo_files_list> <vector_number>"
     exit 1
 fi

@@ -9,7 +9,7 @@ cd /home/iperez/projects/flpz || exit
 
 # Usage: sbatch flpzPert.sh <input_file> <smodes_input> <irrep>
 
-if [ "$#" -ne 3 ] || [ "$#" -ne 4 ]; then
+if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
     echo "Usage: $0 [-p] <input_file> <smodes_input> <irrep>"
     exit 1
 fi

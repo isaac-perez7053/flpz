@@ -11,7 +11,7 @@ cd /home/iperez/projects/flpz || exit
 # Usage: ./flpzCouple.sh [-e] <input_file> <irrep_1> <irrep_2>
 # Use -e flag to run datapointCalcofEnergy.sh instead of datapointCalcofEnergyPert.sh
 
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
     echo "Usage: $0  [-e] <input_file> <irrep_1> <irrep_2>"
     exit 1
 fi
