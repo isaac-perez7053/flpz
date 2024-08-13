@@ -9,6 +9,24 @@
 
 # set -e  # Exit immediately if a command exits with a non-zero status.
 
+
+OPTSTRING=":p:"
+
+run_piezo="false"
+# Parse command line options
+while getopts "${OPTSTRING}" opt; do
+    case $opt in
+    p)
+        run_piezo=true
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    esac
+done
+shift $((OPTIND - 1))
+
 # Function to clean up temporary files
 cleanup() {
     echo "Cleaning up temporary files..."
@@ -106,10 +124,14 @@ EOF
 successful_runs=0
 for dataset in $(seq 1 $((num_datapoints + 1))); do
     #Find dataset filename
-    dataset_locP=$((dataset * 2))
-    dataset_locF=$((dataset_locP + 1))
+    if [ "$run_piezo" = "true" ]; then 
+        dataset_locP=$dataset
+    else
+        dataset_locP=$((dataset * 2))
+        dataset_locF=$((dataset_locP + 1))
+        dataset_fileF=$(sed -n "${dataset_locF}p" "$input_fileAn" | tr -d '[:space:]')
+    fi
     dataset_fileP=$(sed -n "${dataset_locP}p" "$input_fileAn" | tr -d '[:space:]')
-    dataset_fileF=$(sed -n "${dataset_locF}p" "$input_fileAn" | tr -d '[:space:]')
 
     # Check for mpirun and anaddb
     if ! command_exists mpirun; then
@@ -149,20 +171,10 @@ for dataset in $(seq 1 $((num_datapoints + 1))); do
     ################################
     ## Creation of the file of files
     ################################
-    anaddbfilesF="anaddbF_${dataset}.files"
+
     anaddbfilesP="anaddbP_${dataset}.files"
 
-    cat <<EOF >"${anaddbfilesF}"
-${anaddbF}
-flexoElec_${dataset}
-${dataset_fileF}
-dummy1
-dummy2
-dummy3    
-dummy4        
-EOF
-
-    cat <<EOF >"${anaddbfilesP}"
+        cat <<EOF >"${anaddbfilesP}"
 ${anaddbP}
 piezoElec_${dataset}
 ${dataset_fileP}
@@ -172,15 +184,40 @@ dummy3
 dummy4
 EOF
 
+    if [ "$run_piezo" != "true" ]; then 
+
+        anaddbfilesF="anaddbF_${dataset}.files"
+
+        cat <<EOF >"${anaddbfilesF}"
+${anaddbF}
+flexoElec_${dataset}
+${dataset_fileF}
+dummy1
+dummy2
+dummy3    
+dummy4        
+EOF
+
+
+    fi
+
+
     echo "Processing dataset $dataset"
-    echo "Using files: ${dataset_fileP} and ${dataset_fileF}"
+    if [ "$run_piezo" = "true" ]; then 
+        echo "Using files: ${dataset_fileP}"
+    else 
+        echo "Using files: ${dataset_fileP} and ${dataset_fileF}"
+    fi 
     echo "Debug: Content of ${anaddbfilesF}:"
-    cat "${anaddbfilesF}"
+    cat "${anaddbfilesF}":
     echo "Debug: Checking if anaddb is executable:"
     ls -l "$(which anaddb)"
 
-    anaddb <"${anaddbfilesF}" >"${anaddbfilesF}.out" 2>"${anaddbfilesF}.err"
     anaddb <"${anaddbfilesP}" >"${anaddbfilesP}.out" 2>"${anaddbfilesP}.err"
+
+    if [ "$run_piezo" != "true" ]; then 
+        anaddb <"${anaddbfilesF}" >"${anaddbfilesF}.out" 2>"${anaddbfilesF}.err"
+    fi
     # Run Anaddb Files
     # if ! mpirun -v -hosts=localhost -np 1 anaddb < "${anaddbfilesF}" > "${anaddbfilesF}.out" 2> "${anaddbfilesF}.err"; then
     #         echo "Error: mpirun failed for ${anaddbfilesF}"
@@ -217,16 +254,23 @@ fi
 
 # Process and store tensor data
 for dataset in $(seq 1 $((num_datapoints + 1))); do
-    flexo_file="flexoElec_${dataset}"
+
     piezo_file="piezoElec_${dataset}"
+    
+    if [ "$run_piezo" != "true" ]; then 
+        flexo_file="flexoElec_${dataset}"
+        if check_file "$flexo_file"; then 
+             # Store flexoelectric tensor into output file
+            echo -e "%Flexoelectric Tensor: Dataset ${dataset}\n" >>"$output_file"
+            flexoTen="mu${dataset} = [$(grep -A11 'TOTAL' "$flexo_file" | grep -o '[-]\?[0-9]*\.*[0-9]\+')];"
+            echo "${flexoTen}" >>"$output_file"
+            echo -e "\n\n\n" >>"$output_file"
+        else
+            echo "Warning: Missing tensor files for dataset $dataset"
+        fi 
+    fi
 
-    if check_file "$flexo_file" && check_file "$piezo_file"; then
-        # Store flexoelectric tensor into output file
-        echo -e "%Flexoelectric Tensor: Dataset ${dataset}\n" >>"$output_file"
-        flexoTen="mu${dataset} = [$(grep -A11 'TOTAL' "$flexo_file" | grep -o '[-]\?[0-9]*\.*[0-9]\+')];"
-        echo "${flexoTen}" >>"$output_file"
-        echo -e "\n\n\n" >>"$output_file"
-
+    if check_file "$piezo_file"; then
         # Store piezoelectric tensor into output file
         echo -e "%Piezoelectric Tensor: Dataset ${dataset}\n" >>"${output_file}"
         piezoTen="chi${dataset} = [$(grep -A7 'Proper piezoelectric constants (relaxed ion)' "$piezo_file" | grep -o '[-]\?[0-9]*\.*[0-9]\+' | tail -n +2)];"

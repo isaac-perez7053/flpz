@@ -2,8 +2,6 @@
 # Creates the boilerplate, a dependency for the SMODES calculation
 # Usage: ./boilerplate_generation.sh <input_file>
 
-set -e # Exit immediately if a command exits with a non-zero status
-
 # Function to check correct number of arguments
 check_args() {
     if [ "$#" -ne 1 ]; then
@@ -30,7 +28,6 @@ setup_boilerplate() {
         exit 1
     fi
     pp_dirpath=$(grep "pp_dirpath" "$general_structure_file" | awk '{print $2}' | sed 's/[,"]//g')
-    local pp_dirpath
     if [ -z "$pp_dirpath" ]; then
         echo "Error: pp_dirpath not found in $general_structure_file"
         exit 1
@@ -38,8 +35,7 @@ setup_boilerplate() {
 
     for i in $(seq 2 $((ntypat + 1))); do
         pseudos=$(grep "pseudos" "$general_structure_file" | awk "{print \$$i}" | sed 's/[,"]//g')
-        local pseudos
-        cp "${pp_dirpath}${pseudos}" boilerplate/
+        cp -r "${pp_dirpath}${pseudos}" boilerplate/
     done
 }
 
@@ -68,8 +64,6 @@ prepare_template() {
     for var in "${vars[@]}"; do
         if grep -q "^[[:space:]]*$var" boilerplate/template.abi; then
             start_line=$(grep -n "$var" boilerplate/template.abi | cut -d: -f1)
-            local start_line
-            local end_line
             if [ "$var" = "rprim" ]; then
                 end_line=$((start_line + 3))
             else

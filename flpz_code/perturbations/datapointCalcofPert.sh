@@ -2,6 +2,23 @@
 # Flexoelectricity and Piezoelectricity Calculation for Perturbed Systems
 # Usage: ./datapointCalcofElec.sh <input_file>
 
+OPTSTRING=":p:"
+
+run_piezo="false"
+# Parse command line options
+while getopts "${OPTSTRING}" opt; do
+    case $opt in
+    p)
+        run_piezo=true
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    esac
+done
+shift $((OPTIND - 1))
+
 # Python-based calculation function
 calculate() {
     python3 - <<END
@@ -31,6 +48,7 @@ check_args() {
         exit 1
     fi
 }
+
 
 # Function to read input parameters
 read_input_params() {
@@ -192,7 +210,9 @@ create_perturbed_files() {
     local filename_abi="${filename}.abi"
 
     echo "${structure}_${iteration}_vec${vecNum}o_DS4_DDB" >>"$datasets_file"
-    echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >>"$datasets_file"
+    if [ "$run_piezo" != "true" ]; then
+        echo "${structure}_${iteration}_vec${vecNum}o_DS5_DDB" >>"$datasets_file"
+    fi
     echo "${filename}.abo" >>"$datasetsAbo_file"
 
     # Extract and perturb cartesian coordinates
@@ -253,7 +273,9 @@ create_perturbedcoupled_files() {
     local filename_abi="${filename}.abi"
 
     echo "${structure}_${iterationX}_${iterationY}_vec${vecNum}o_DS4_DDB" >>"$datasets_file"
-    echo "${structure}_${iterationX}_${iterationY}_vec${vecNum}o_DS5_DDB" >>"$datasets_file"
+    if [ "$run_piezo" != "true" ]; then
+        echo "${structure}_${iterationX}_${iterationY}_vec${vecNum}o_DS5_DDB" >>"$datasets_file"
+    fi
     echo "${filename}.abo" >>"$datasetsAbo_file"
 
     # Extract and perturb cartesian coordinates
@@ -321,7 +343,12 @@ create_abinit_input() {
 # ${structure}: Flexoelectric Tensor Calculation #
 ##################################################
 
-ndtset 5
+$(if [ "$run_piezo" = "true" ]; then 
+    echo "ndtset 4"
+else 
+    echo "ndtset 5"
+fi 
+)
 
 # Set 1: Ground State Self-Consistency
 #*************************************
@@ -355,9 +382,11 @@ rfphon4 1
 rfstrs4 3
 rfstrs_ref4 1
 tolvrs4 1.0d-8
-prepalw4 1
 
-# Set 5: Long-wave Calculations
+$(if [ "$run_piezo" != "true" ]; then 
+    echo "prepalw4 1"
+
+    echo "# Set 5: Long-wave Calculations
 #******************************
 
 optdriver5 10
@@ -370,6 +399,9 @@ lw_flexo5 1
 # turn off various file outputs
 prtpot 0
 prteig 0
+  fi"  
+fi
+)
 
 EOF
     # Add general info about the structure
@@ -475,7 +507,6 @@ wait_for_jobs() {
 # Main execution
 check_args "$@"
 read_input_params "$1"
-echo step
 calc_step_size
 init_output_files
 extract_normalize_eigdisp1 "$1"
@@ -485,7 +516,7 @@ for ((i = 0; i < ${#eigdisp_array1[@]}; i += 3)); do
     echo "${eigdisp_array1[i]} ${eigdisp_array1[i + 1]} ${eigdisp_array1[i + 2]}"
 done
 echo ""
-job_ids=()
+
 # Create perturbed files
 if [ "$phonon_coupling" = 1 ]; then
     extract_normalize_eigdisp2 "$1"
@@ -506,6 +537,7 @@ else
     done
 fi
 
+job_ids=()
 wait_for_jobs
 
 echo "Data Analysis Begins"
@@ -514,7 +546,13 @@ echo "];" >>"$xpoints"
 # Organize files
 mkdir -p "datapointAbiFiles_vec${vecNum}" "DDBs_vec${vecNum}"
 mv "${structure}_*_vec${vecNum}.abi" "datapointAbiFiles_vec${vecNum}/"
-bash dataAnalysisPert.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
+
+if [ "$run_piezo" = "true" ]; then 
+    bash dataAnalysisPert.sh -p "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
+else 
+    bash dataAnalysisPert.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
+fi
+
 echo "Data Analysis is Complete"
 
 mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
