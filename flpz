@@ -9,14 +9,20 @@ if [ "$#" = 0 ]; then
     flpz_input for information on usage"
 fi
 
-# Initialize flag variable
+# Initialize flag variables
 run_energy=false
+run_piezo=false
+
+OPTSTRING=":e:p:"
 
 # Parse command line options
-while getopts "e" opt; do
+while getopts "${OPTSTRING}" opt; do
     case $opt in
     e)
         run_energy=true
+        ;;
+    p)
+        run_piezo=true
         ;;
     \?)
         echo "Invalid option: -$OPTARG" >&2
@@ -98,7 +104,13 @@ if [ "$program" = "cpl" ]; then
 # Run if perturbation option is chosen
 elif [ "$program" = "pert" ]; then
     cp flpz_input_compiled/b-script-flpzPert .
-    sbatch b-script-flpzPert "$input_1" "$input_2" "$input_3"
+
+    # Run only the piezo calculation if activated
+    if [ "$run_piezo" = "true" ]; then 
+        sbatch b-script-flpzPert -p "$input_1" "$input_2" "$input_3"
+    else
+        sbatch b-script-flpzPert "$input_1" "$input_2" "$input_3"
+    fi 
     rm b-script-flpzPert
 
 # Run if energy option is chosen
