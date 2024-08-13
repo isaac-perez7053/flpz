@@ -36,31 +36,51 @@ def has_orthogonal_rows(matrix, tol=1e-8):
 def diagonalize(matrix):
     # Compute the eigenvalues and eigenvectors
     eigenvalues, eigenvectors = np.linalg.eig(matrix)
-    real_eigenvalues = eigenvalues.real
+    
+    # Round eigenvalues to handle potential floating-point inaccuracies
+    eigenvalues = np.round(eigenvalues, decimals=10)
     
     # Construct the diagonal matrix of eigenvalues
-    D = np.diag(real_eigenvalues)
+    D = np.diag(eigenvalues.real)
     
-    # The columns of eigenvectors are the eigenvectors
-    P = eigenvectors
-    
-    # Compute P inverse
-    P_inv = np.linalg.inv(P)
-    
-    return P, D, P_inv
+    return D
 
-# Example usage
-A = np.array([[1, 2], [2, 1]])
-P, D, P_inv = diagonalize(A)
-
+def check_and_rearrange(matrix):
+    # All possible permutations of the identity matrix
+    target_forms = [
+        np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),  # Identity (no change needed)
+        np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]),
+        np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1]]),
+        np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]),
+        np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]),
+        np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
+    ]
+    
+    abs_matrix = np.abs(matrix)
+    
+    for i, target in enumerate(target_forms):
+        if np.allclose(abs_matrix, target):
+            # Create a permutation array to rearrange the rows
+            perm = np.argmax(target, axis=1)
+            return matrix[perm]
+    
+    return matrix
 
 rprim_str = parse_args()
 rprim = reshape_rprim(rprim_str)
+rprim = check_and_rearrange(rprim)
+
 if has_orthogonal_rows(rprim):
-    P, D, P_inv = diagonalize(rprim)
+    D = diagonalize(rprim)
     for row in D:
         print(" ".join(f"{x.real:.10f}" for x in row))
 else:
     for row in rprim:
         print(" ".join(f"{x:.10f}" for x in row))
+
+import numpy as np
+
+def rearrange_to_diagonal(arr):
+    diag = np.diag(arr)
+    return np.diag(diag)
 
