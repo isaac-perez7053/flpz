@@ -25,7 +25,7 @@ while getopts "${OPTSTRING}" opt; do
         ;;
     esac
 done
-shift $((OPTIND - 1))
+shift
 
 # Function to clean up temporary files
 cleanup() {

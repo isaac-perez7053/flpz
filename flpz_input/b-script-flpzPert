@@ -29,7 +29,6 @@ while getopts "${OPTSTRING}" opt; do
         ;;
     esac
 done
-shift $((OPTIND - 1))
 
 echo "Beginning FLPZ Program"
 

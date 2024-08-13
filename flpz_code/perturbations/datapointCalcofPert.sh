@@ -17,7 +17,7 @@ while getopts "${OPTSTRING}" opt; do
         ;;
     esac
 done
-shift $((OPTIND - 1))
+shift
 
 # Python-based calculation function
 calculate() {
