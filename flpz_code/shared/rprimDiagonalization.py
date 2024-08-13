@@ -53,18 +53,14 @@ def diagonalize(matrix):
 A = np.array([[1, 2], [2, 1]])
 P, D, P_inv = diagonalize(A)
 
-# Verify: A = PDP^(-1)
-print(np.allclose(A, P @ D @ P_inv))
-
 
 rprim_str = parse_args()
-rprim= reshape_rprim(rprim_str)
+rprim = reshape_rprim(rprim_str)
 if has_orthogonal_rows(rprim):
     P, D, P_inv = diagonalize(rprim)
     for row in D:
-        print (" ".join(f"{x.real:.10f}" for x in row))
-    
+        print(" ".join(f"{x.real:.10f}" for x in row))
 else:
     for row in rprim:
-        print (" ".join(f"{x:.10f}" for x in row))
+        print(" ".join(f"{x:.10f}" for x in row))
 
