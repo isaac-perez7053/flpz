@@ -117,6 +117,7 @@ update_input_file() {
 # Main execution
 check_args "$@"
 input_file="$1"
+extract_data "$input_file"
 #rprim=$(calculate_rprimDiagonal "$rprim")
 xcart=$(calculate_xcart "xcart" "$rprim" "$xred" "$a" "$b" "$c" "$natom" | sed 's/\[//g; s/\]//g')
 update_input_file "$input_file" "$xcart" "xcart"
