@@ -155,10 +155,17 @@ for dataset in $(seq 1 $((num_datapoints + 1))); do
     ls -l "$dataset_fileP" "$dataset_fileF" 2>/dev/null || echo "Files not found"
 
     # Check if dataset files exist
-    if ! check_file "$dataset_fileP" || ! check_file "$dataset_fileF"; then
-        echo "Skipping dataset $dataset due to missing files"
+    if ! check_file "$dataset_fileP"; then
+        echo "Skipping dataset $dataset for piezoelectricity due to missing files"
         continue
     fi
+
+    if [ "$run_piezo" != "true" ]; then 
+        if ! check_file "$dataset_fileF"; then 
+            echo "Skipping dataset $dataset for flexoelectricity due to missing files"
+            continue
+        fi 
+    fi 
 
     #Search for totenergy and store
     abo_file=$(sed -n "${dataset}p" "$inputAbo_files")
