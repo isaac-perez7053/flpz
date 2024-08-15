@@ -27,6 +27,10 @@ while getopts "${OPTSTRING}" opt; do
 done
 shift
 
+if [ "$run_piezo" = "true" ]; then 
+    echo "Piezo flag -p activated"
+fi 
+
 # Function to clean up temporary files
 cleanup() {
     echo "Cleaning up temporary files..."
@@ -103,14 +107,6 @@ echo "num_datapoints: $num_datapoints"
 ## Create anaddb files
 ######################
 
-anaddbF="flexoanaddb.abi"
-cat <<EOF >"${anaddbF}"
-! anaddb calculation of flexoelectric tensor
-
-flexoflag 1
-
-EOF
-
 anaddbP="piezoanaddb.abi"
 cat <<EOF >"${anaddbP}"
 ! Input file for the anaddb code
@@ -121,11 +117,21 @@ instrflag 1 ! the flag for the internal strain tensor
 
 EOF
 
+if [ "$run_piezo" != "true" ]; then
+anaddbF="flexoanaddb.abi"
+cat <<EOF >"${anaddbF}"
+! anaddb calculation of flexoelectric tensor
+
+flexoflag 1
+
+EOF
+fi
+
 successful_runs=0
 for dataset in $(seq 1 $((num_datapoints + 1))); do
     #Find dataset filename
     if [ "$run_piezo" = "true" ]; then 
-        dataset_locP=$dataset
+        dataset_locP=$((dataset + 1 ))
     else
         dataset_locP=$((dataset * 2))
         dataset_locF=$((dataset_locP + 1))
@@ -151,8 +157,15 @@ for dataset in $(seq 1 $((num_datapoints + 1))); do
     echo "mpirun location: $(which mpirun)"
     echo "anaddb location: $(which anaddb)"
 
-    echo "Debug: Looking for files '$dataset_fileP' and '$dataset_fileF'"
-    ls -l "$dataset_fileP" "$dataset_fileF" 2>/dev/null || echo "Files not found"
+
+    echo "Debug: Looking for the file '$dataset_fileP'"
+    ls -l "$dataset_fileP" 2>/dev/null || echo "Files not found"
+
+
+    if [ "$run_piezo" != "true" ]; then 
+        echo "Debug: Looking for the file '$dataset_fileF'"
+        ls -l "$dataset_fileF" 2>/dev/null || echo "Files not found"
+    fi 
 
     # Check if dataset files exist
     if ! check_file "$dataset_fileP"; then
@@ -160,11 +173,9 @@ for dataset in $(seq 1 $((num_datapoints + 1))); do
         continue
     fi
 
-    if [ "$run_piezo" != "true" ]; then 
-        if ! check_file "$dataset_fileF"; then 
-            echo "Skipping dataset $dataset for flexoelectricity due to missing files"
-            continue
-        fi 
+    if [ "$run_piezo" != "true" ] && ! check_file "$dataset_fileF"; then 
+        echo "Skipping dataset $dataset for flexoelectricity due to missing files"
+        continue
     fi 
 
     #Search for totenergy and store
@@ -214,9 +225,9 @@ EOF
         echo "Using files: ${dataset_fileP}"
     else 
         echo "Using files: ${dataset_fileP} and ${dataset_fileF}"
+        echo "Debug: Content of ${anaddbfilesF}:"
+        cat "${anaddbfilesF}":
     fi 
-    echo "Debug: Content of ${anaddbfilesF}:"
-    cat "${anaddbfilesF}":
     echo "Debug: Checking if anaddb is executable:"
     ls -l "$(which anaddb)"
 
@@ -240,7 +251,7 @@ EOF
     #         continue
     # fi
 
-    if [ ! -f "flexoElec_${dataset}" ]; then
+    if [ ! -f "flexoElec_${dataset}" ] && [ "$run_piezo" != "true" ]; then
         echo "Error: flexoElec_${dataset} was not created"
         continue
     fi
