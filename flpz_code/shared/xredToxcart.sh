@@ -56,7 +56,7 @@ extract_data() {
 }
 
 calculate_xcart() {
-    python3 ./xCartxRed.py "$@" | tr '\n' ' ' | sed 's/ $//'
+    python3 ./xCartxRed.py "$@" | tr '\n' ' ' | sed 's/ $//'  2>&1
 }
 
 calculate_rprimDiagonal() {
@@ -92,7 +92,7 @@ update_input_file() {
         print r[4], r[5], r[6]
         print r[7], r[8], r[9]
         print coord_type
-        for (i=natom*3+1; i<=natom*6; i+=3) {
+        for (i=1; i<=natom*3; i+=3) {
             print c[i], c[i+1], c[i+2]
         }
         values_printed = 1

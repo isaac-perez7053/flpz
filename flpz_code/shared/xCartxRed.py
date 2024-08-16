@@ -28,9 +28,7 @@ def calculateXred(rprim, xcart, a, b, c):
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
     rprim_scaled[2] *= c
-    for i in range(natom):
-        xred[i] = np.dot(np.linalg.inv(rprim_scaled), xcart[i].T).T
-    print(xred)
+    xred = np.dot(xcart, np.linalg.inv(rprim_scaled))
     return xred
 
 def calculateXcart(rprim, xred, a, b, c): 
@@ -41,9 +39,7 @@ def calculateXcart(rprim, xred, a, b, c):
     rprim_scaled[0] *= a
     rprim_scaled[1] *= b
     rprim_scaled[2] *= c
-    for i in range(natom):  
-        xcart[i] = np.dot(rprim_scaled, xred[i].T).T
-    print(xcart)
+    xcart = np.dot(xred, rprim_scaled)
     return xcart
 
 
