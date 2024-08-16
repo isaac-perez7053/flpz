@@ -151,11 +151,7 @@ extract_normalize_eigdisp1() {
     # Calculate the normalized eigen displacement
     local eig_squaresum=0
     for eig_component in "${eigdisp_array[@]}"; do
-        echo "eig_component"
-        echo "$eig_component"
         eig_squaresum=$(calculate "($eig_component)**2 + $eig_squaresum")
-        echo "eig_squaresum"
-        echo "$eig_squaresum"
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
 
@@ -207,11 +203,7 @@ extract_normalize_eigdisp2() {
     # Calculate the normalized eigen displacement
     local eig_squaresum=0
     for eig_component in "${eigdisp_array[@]}"; do
-        echo "eig_component"
-        echo "$eig_component"
         eig_squaresum=$(calculate "($eig_component)**2 + $eig_squaresum")
-        echo "eig_squaresum"
-        echo "$eig_squaresum"
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
 
