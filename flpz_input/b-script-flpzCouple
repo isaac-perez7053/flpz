@@ -184,6 +184,14 @@ bash scientificToDecimal.sh "../$inputData_2"
 
 echo "Printing inputData"
 echo "../$inputData_1" "../$inputData_2"
+echo "InputIrrep_1:"
+echo "###############################################"
+cat "../$inputIrrep_1"
+echo "###############################################"
+echo "InputIrrep_2:"
+echo "###############################################"
+cat "../$inputIrrep_2"
+echo "###############################################"
 result1=$(bash totEnergytoDat.sh "../$inputData_1" 2>&1)
 filename1=$(echo "$result1" | sed -n 's/.*Output written to \(.*\)$/\1/p')
 result2=$(bash totEnergytoDat.sh "../$inputData_2" 2>&1)

@@ -415,8 +415,7 @@ lw_flexo5 1
 
 # turn off various file outputs
 prtpot 0
-prteig 0
-  fi"  
+prteig 0" 
 fi
 )
 
