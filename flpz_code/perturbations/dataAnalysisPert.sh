@@ -25,7 +25,7 @@ while getopts "${OPTSTRING}" opt; do
         ;;
     esac
 done
-shift
+shift $(( OPTIND - 1 ))
 
 if [ "$run_piezo" = "true" ]; then 
     echo "Piezo flag -p activated"
@@ -310,4 +310,5 @@ else
     echo "Error: Unable to append x_points or total energy data"
 fi
 
+rm anaddb*
 echo "Data analysis completed. Output saved to $output_file"

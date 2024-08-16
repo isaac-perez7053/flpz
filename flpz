@@ -30,7 +30,7 @@ while getopts "${OPTSTRING}" opt; do
         ;;
     esac
 done
-shift 
+shift $(( OPTIND - 1 ))
 
 # Ensures that all python dependencies are installed
 # Function to check if a Python package is installed
