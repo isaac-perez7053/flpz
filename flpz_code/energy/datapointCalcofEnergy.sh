@@ -116,6 +116,8 @@ extract_normalize_eigdisp1() {
     local end_mode=$((begin_mode + natom - 1))
 
     eig_disp1=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+    echo "Printing eigdisp_array1 before normalization"
+    echo "$eig_disp1"
 
     if [ -z "$eig_disp1" ]; then
         echo "Error: Could not extract eigenvector data"
@@ -137,6 +139,9 @@ extract_normalize_eigdisp1() {
         eig_squaresum=$(calculate "$eig_component**2 + $eig_squaresum")
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
+
+    echo "Normfact for eigen displament 1:"
+    echo "$normfact"
 
     local normalized_array=()
     for i in "${!eigdisp_array[@]}"; do
@@ -164,6 +169,8 @@ extract_normalize_eigdisp2() {
     local end_mode=$((begin_mode + natom - 1))
 
     eig_disp2=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+    echo "Printing eigdisp_array2 before normalization"
+    echo "$eig_disp2"
 
     if [ -z "$eig_disp2" ]; then
         echo "Error: Could not extract eigenvector data"
@@ -185,6 +192,9 @@ extract_normalize_eigdisp2() {
         eig_squaresum=$(calculate "$eig_component**2 + $eig_squaresum")
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
+
+    echo "Normfact for eigen displament 2:"
+    echo "$normfact"
 
     local normalized_array=()
     for i in "${!eigdisp_array2[@]}"; do
