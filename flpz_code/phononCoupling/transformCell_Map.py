@@ -1,12 +1,10 @@
 import numpy as np
 
+ORIGINALCELL
+
+TARGETCELL
+
 def transformCell_Map():
-    # Assuming ORIGINALCELL and TARGETCELL are numpy arrays or lists
-
-    # ORIGINALCELL
-
-    # TARGETCELL
-
 
     # Make lists of all the positions corresponding to each element type for the Gamma cell
     Gamma_posfrac_Ca = Gamma_posfrac[0:1, :]
