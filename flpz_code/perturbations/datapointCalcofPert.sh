@@ -19,7 +19,7 @@ while getopts "${OPTSTRING}" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Python-based calculation function
+# Python-based calculation function. Eliminates the need to install bc
 calculate() {
     python3 - <<END
 from decimal import Decimal, getcontext
@@ -29,14 +29,18 @@ def decimal_sqrt(x):
     return Decimal(x).sqrt()
 
 getcontext().prec = 10  # Set precision to 10 digits total
+
 x = '$1'
 # Replace math functions with Decimal-compatible versions
 x = x.replace('sqrt', 'decimal_sqrt')
 x = x.replace('^', '**')  # Replace ^ with ** for exponentiation
+x = x.replace('abs', 'abs')  # Keep abs as is
+
 for func in ['sin', 'cos', 'tan', 'exp', 'log']:
     x = x.replace(func, f'Decimal({func})')
 x = x.replace('pi', str(Decimal(math.pi)))
-result = eval(x, {'Decimal': Decimal, 'decimal_sqrt': decimal_sqrt}, {})
+
+result = eval(x, {'Decimal': Decimal, 'decimal_sqrt': decimal_sqrt, 'abs': abs}, {})
 print(f'{result:.10g}')
 END
 }
@@ -112,10 +116,10 @@ init_output_files() {
     echo "datasetsAbo_file: $datasetsAbo_file"
 }
 
-# Function to extract and normalize eigenvector displacements
+# Function to extract and normalize eigenvector displacements 
 extract_normalize_eigdisp1() {
     local input_file="$1"
-
+    # Extraction of the eigen displacement in the input file. 
     mode_location=$(grep -in "eigen_disp1" "$input_file" | cut -d: -f1)
 
     if [ -z "$mode_location" ]; then
@@ -135,49 +139,54 @@ extract_normalize_eigdisp1() {
         exit 1
     fi
 
-    declare -ag "eigdisp_array1"
+    # Declare an array that will hold the eigen displacement
+    eigdisp_array1=()
 
     # Read all components into the array
     while read -r line; do
         read -ra temp_array <<<"$line"
-        eigdisp_array1+=("${temp_array[@]}")
+        eigdisp_array+=("${temp_array[@]}")
     done <<<"$eig_disp1"
 
+    # Calculate the normalized eigen displacement
     local eig_squaresum=0
-    for eig_component in "${eigdisp_array1[@]}"; do
-        eig_squaresum=$(calculate "$eig_component**2 + $eig_squaresum")
+    for eig_component in "${eigdisp_array[@]}"; do
+        echo "eig_component"
+        echo "$eig_component"
+        eig_squaresum=$(calculate "($eig_component)**2 + $eig_squaresum")
+        echo "eig_squaresum"
+        echo "$eig_squaresum"
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
 
-    echo "Normfact for eigen displament 1:"
+    echo "Normfact for eigen displacement 1:"
     echo "$normfact"
 
     local normalized_array=()
-    for i in "${!eigdisp_array1[@]}"; do
-        normalized_value=$(calculate "${eigdisp_array1[i]}/$normfact")
+    for i in "${!eigdisp_array[@]}"; do
+        normalized_value=$(calculate "${eigdisp_array[i]}/$normfact")
         normalized_array+=("$normalized_value")
     done
 
     # Assign the normalized array back to eigdisp_array
     eigdisp_array1=("${normalized_array[@]}")
-
 }
 
-# Function to extract and normalize eigenvector displacements
+# Function to extract and normalize eigenvector displacements 
 extract_normalize_eigdisp2() {
     local input_file="$1"
-
+    # Extraction of the eigen displacement in the input file. 
     mode_location=$(grep -in "eigen_disp2" "$input_file" | cut -d: -f1)
 
     if [ -z "$mode_location" ]; then
-        echo "Error: Could not find eigen_disp2 in $input_file"
+        echo "Error: Could not find eigen_disp1 in $input_file"
         exit 1
     fi
 
     local begin_mode=$((mode_location + 1))
     local end_mode=$((begin_mode + natom - 1))
 
-    eig_disp2=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+    eig_disp1=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
     echo "Printing eigdisp_array2 before normalization"
     echo "$eig_disp2"
 
@@ -186,27 +195,32 @@ extract_normalize_eigdisp2() {
         exit 1
     fi
 
-    declare -ag "eigdisp_array2"
+    # Declare an array that will hold the eigen displacement
+    eigdisp_array2=()
 
     # Read all components into the array
     while read -r line; do
         read -ra temp_array <<<"$line"
-        eigdisp_array2+=("${temp_array[@]}")
+        eigdisp_array+=("${temp_array[@]}")
     done <<<"$eig_disp2"
 
+    # Calculate the normalized eigen displacement
     local eig_squaresum=0
-    for eig_component in "${eigdisp_array2[@]}"; do
-        eig_squaresum=$(calculate "$eig_component**2 + $eig_squaresum")
+    for eig_component in "${eigdisp_array[@]}"; do
+        echo "eig_component"
+        echo "$eig_component"
+        eig_squaresum=$(calculate "($eig_component)**2 + $eig_squaresum")
+        echo "eig_squaresum"
+        echo "$eig_squaresum"
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
 
-    echo "Normfact for eigen displament 2:"
+    echo "Normfact for eigen displacement 1:"
     echo "$normfact"
 
-
     local normalized_array=()
-    for i in "${!eigdisp_array2[@]}"; do
-        normalized_value=$(calculate "${eigdisp_array2[i]}/$normfact")
+    for i in "${!eigdisp_array[@]}"; do
+        normalized_value=$(calculate "${eigdisp_array[i]}/$normfact")
         normalized_array+=("$normalized_value")
     done
 
