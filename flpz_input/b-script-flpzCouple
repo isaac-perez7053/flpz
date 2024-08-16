@@ -201,24 +201,56 @@ cat "3D_coordinates.dat"
 # only map which atoms are which in the new cell, but will convert
 # the old eigendisplacement vector to be valid for the new cell. 
 
+# Testing some of the internal scripts:
+echo "Printing the output of transformCellpy.sh"
+echo "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")"
+
+echo "Printing the output of eigVecExtension.sh"
+echo "$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1")")"
 
 if [ "$(echo "${eig_disp1}" | wc -l)" -gt "$(echo "${eig_disp2}" | wc -l)" ]; then
     echo "eig_disp1 was greater than eig_disp2"
-    neweig_disp2="$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCell.sh "../$inputIrrep_2" "../$inputIrrep_1" \
+
+    # Testing some of the internal scripts:
+    echo "Printing the output of transformCellpy.sh"
+    echo "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1")"
+
+    echo "Printing the output of eigVecExtension.sh"
+    echo "$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1")")"
+
+    # Testing ends here
+
+    neweig_disp2="$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1" \
     | sed -n '/Mapping =/,/^$/p' \
     | tail -n +2 \
     | awk '{print $1}' \
     | grep '^[0-9]*$')")"
+
+    echo "Printing the new eigen displacement"
+    echo "$neweig_disp2"
 
     #Update the eigendisplacement value in the input file. 
     sed -i '' "s/${eig_disp2}/${neweig_disp2}/g" "$input_file"
 else
     echo "eig_disp2 was greater than eig_disp1"
-    neweig_disp1="$(bash eigVecExtension.sh -p "$eig_disp1" "$(bash transformCell.sh "../$inputIrrep_1" "../$inputIrrep_2" \
+
+    # Testing some of the internal scripts:
+    echo "Printing the output of transformCellpy.sh"
+    echo "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")"
+
+    echo "Printing the output of eigVecExtension.sh"
+    echo "$(bash eigVecExtension.sh -p "$eig_disp1" "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")")"
+
+    # Testing ends here
+
+    neweig_disp1="$(bash eigVecExtension.sh -p "$eig_disp1" "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2" \
     | sed -n '/Mapping =/,/^$/p' \
     | tail -n +2 \
     | awk '{print $1}' \
     | grep '^[0-9]*$')")"
+
+    echo "Printing the new eigen displacement"
+    echo "$neweig_disp1"
 
     #Update the eigendisplacement value in the input file. 
     sed -i '' "s/${eig_disp1}/${neweig_disp1}/g" "$input_file"

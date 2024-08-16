@@ -1,125 +1,24 @@
-#!/bin/bash
+#!/bin/bash 
 
-# Serves as the program's input source script. The following script will make sure all dependencies are downloaded
-# and scripts are executable. Note, this script will take the input file from the flpz_input directory and execute it
-# in the current working directory.
+# Serves as the program's input source script 
 
-if [ "$#" = 0 ]; then
-    echo "For information on how to use the flpz program, check github or look at the input files in the folder \
-    flpz_input for information on usage"
-fi
-
-# Initialize flag variables
-run_energy=false
-run_piezo=false
-
-OPTSTRING=":e:p:"
-
-# Parse command line options
-while getopts "${OPTSTRING}" opt; do
-    case $opt in
-    e)
-        run_energy=true
-        ;;
-    p)
-        run_piezo=true
-        ;;
-    \?)
-        echo "Invalid option: -$OPTARG" >&2
-        exit 1
-        ;;
-    esac
-done
-shift $(( OPTIND - 1 ))
-
-# Ensures that all python dependencies are installed
-# Function to check if a Python package is installed
-check_package() {
-    python3 -c "import $1" 2>/dev/null
-    return $?
-}
-
-# Function to install a package using pip
-install_package() {
-    echo "Installing $1..."
-    pip3 install "$1"
-}
-
-# List of required packages
-packages=("numpy" "plotly" "scipy" "matplotlib")
-
-# Check each package and install if missing
-for package in "${packages[@]}"; do
-    if ! check_package "$package"; then
-        echo "$package is not installed."
-        install_package "$package"
-    else
-        echo "$package is already installed."
-    fi
-done
-
-echo "All python dependencies are installed."
-
-handle_files() {
-    source_dir="flpz_code"
-    local files=(
-        "shared/smodes_postproc_abinit.py"
-        "shared/smodes_symmadapt_abinit.py"
-        "shared/xCartxRed.py"
-        "shared/findAngle.py"
-        "polynomialFitting/polynomialFitting2D3D.py"
-        "phononCoupling/transformCell_Map.py"
-        "shared/rprimDiagonalization.py"
-    )
-
-    # Iterate down each python script in the array above and
-    # ensure each script has executable permissions
-    for file in "${files[@]}"; do
-        if [ ! -x "script.py" ]; then
-            chmod +x "$source_dir/$file"
-        fi
-    done
-}
-
-handle_files
-
-echo "All python scripts have executable permissions"
-
-# Handle all input files for flpz programs
 program="$1"
 input_1="$2"
 input_2="$3"
 input_3="$4"
 
-# Run if coupling option is chosen
-if [ "$program" = "cpl" ]; then
-    cp flpz_input_compiled/b-script-flpzCouple .
-    if [ "$run_energy" = true ]; then
-        sbatch b-script-flpzCouple -e "$input_1"
-    else
-        sbatch b-script-flpzCouple "$input_1"
-    fi
-    rm b-script-flpzCouple
-
-# Run if perturbation option is chosen
-elif [ "$program" = "pert" ]; then
-    cp flpz_input_compiled/b-script-flpzPert .
-
-    # Run only the piezo calculation if activated
-    if [ "$run_piezo" = "true" ]; then 
-        sbatch b-script-flpzPert -p "$input_1" "$input_2" "$input_3"
-    else
-        sbatch b-script-flpzPert "$input_1" "$input_2" "$input_3"
-    fi 
+if [ "$program" = "CPL" ]; then
+    cp flpz_input/b-script-flpzCouple .
+    sbatch b-script-flpzCouple "$input_1" "$input_2" "$input_3"
+    rm b-script-flpzCouple 
+elif [ "$program" = "PERT" ]; then
+    cp flpz_input/b-script-flpzPert . 
+    sbatch b-script-flpzPert "$input_1" "$input_2" "$input_3"
     rm b-script-flpzPert
-
-# Run if energy option is chosen
-elif [ "$program" = "energy" ]; then
-    cp flpz_input_compiled/b-script-flpzEnergy .
+elif [ "$program" = "ENERGY" ]; then
+    cp flpz_input/b-script-flpzEnergy . 
     sbatch b-script-flpzEnergy "$input_1" "$input_2" "$input_3"
     rm b-script-flpzEnergy
-
-# Run if none of the above options were chosen
 else
     echo "Program called invalid"
     exit 1
