@@ -243,7 +243,8 @@ create_perturbed_files() {
     local displacement_vector=()
 
     # Calculate the scalar used to multiple the eigen-displacement for the file
-    cstep_size=$(calculate "${step_size} * ${iteration}")
+    cstep_sizew=$(calculate "${step_size} * ${iteration}")
+    cstep_size=$(calculate "${cstep_sizew} + ${min}")
     for component in $xcart; do
         local eig_dispcomp="${eigdisp_array1[$count]}"
         
@@ -312,8 +313,10 @@ create_perturbedcoupled_files() {
     local displacement_vector=()
 
     # Calculate the scalars used to multiply the displacement vectors
-    cstep_sizeX=$(calculate "${step_sizeX} * ${iterationX}")
-    cstep_sizeY=$(calculate "${step_sizeY} * ${iterationY}")
+    cstep_sizeXw=$(calculate "${step_sizeX} * ${iterationX}")
+    cstep_sizeYw=$(calculate "${step_sizeY} * ${iterationY}")
+    cstep_sizeX=$(calcualte "${cstep_sizeXw} + ${xmin}")
+    cstep_sizeY=$(calculate "${cstep_sizeYw} + ${ymin}")
     for component in $xcart; do
         local eig_dispcompX="${eigdisp_array1[$count]}"
         local eig_dispcompY="${eigdisp_array2[$count]}"
