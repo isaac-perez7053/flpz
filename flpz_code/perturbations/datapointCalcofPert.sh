@@ -80,6 +80,7 @@ read_input_params() {
     fi
 }
 
+
 # Function to calculate step size
 calc_step_size() {
     if [ "$phonon_coupling" = 1 ]; then
@@ -252,7 +253,8 @@ create_perturbed_files() {
     local count=0
     local nxcart_array=()
     local displacement_vector=()
-    cstep_size=$(calculate "${step_size} * ${iteration}")
+    cstep_sizew=$(calculate "${step_size} * ${iteration}")
+    cstep_size=$(calculate "${cstep_sizew} + ${min}")
     for component in $xcart; do
         local eig_dispcomp="${eigdisp_array1[$count]}"
         perturbation=$(calculate "${eig_dispcomp} * ${cstep_size}")
@@ -315,8 +317,10 @@ create_perturbedcoupled_files() {
     local count=0
     local nxcart_array=()
     local displacement_vector=()
-    cstep_sizeX=$(calculate "${step_sizeX} * ${iterationX}")
-    cstep_sizeY=$(calculate "${step_sizeY} * ${iterationY}")
+    cstep_sizeXw=$(calculate "${step_sizeX} * ${iterationX}")
+    cstep_sizeYw=$(calculate "${step_sizeY} * ${iterationY}")
+    cstep_sizeX=$(calculate "${cstep_sizeXw} + ${xmin}")
+    cstep_sizeY=$(calculate "${cstep_sizeYw} + ${ymin}")
     for component in $xcart; do
         local eig_dispcompX="${eigdisp_array1[$count]}"
         local eig_dispcompY="${eigdisp_array2[$count]}"

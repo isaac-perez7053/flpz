@@ -18,32 +18,35 @@ extract_cell_data() {
 
     natom=$(grep "natom" "$file" | awk '{print $2}')
 
-    # Extract rprim
-    rprim=$(awk '/^rprim/{flag=1; next} flag{printf "    [%s],\n", $0; if (NF==0 || ++count==3) exit}' "$file")
+    # Extract rprim with proper indentation
+    rprim=$(awk '/^rprim/{flag=1; next} flag{printf "        [%s],\n", $0; if (NF==0 || ++count==3) exit}' "$file")
 
-    # Extract xred and format it with 3 columns
+    # Extract xred and format it with 3 columns and proper indentation
     xred=$(awk -v natom="$natom" '
         /^xred/{flag=1; next} 
         flag && NF==3 {
-            printf "    [%s, %s, %s],\n", $1, $2, $3
+            printf "        [%s, %s, %s],\n", $1, $2, $3
             if (++count == natom) exit
         }
     ' "$file")
 
-    # Format the data for Python
+    # Format the data for Python with proper indentation
     echo "# Primitive vectors of the $cellType cell"
     echo "${cellType}Cell = np.array(["
-    echo "${rprim%,}"
-    echo "])"
+    echo "$rprim"
+    echo "    ])"
     echo "# $cellType cell expressed in reduced coordinates"
     echo "${cellType}_posfrac = np.array(["
-    echo "${xred%,}"
-    echo "])"
+    echo "$xred"
+    echo "    ])"
 }
 
-# Extract data from input files
-originalCellData=$(extract_cell_data "$originalCell" "ORIGINAL")
-targetCellData=$(extract_cell_data "$targetCell" "TARGET")
+originalCellGenStruc=$(grep "genstruc" "$originalCell" | awk '{print $2}')
+targetCellGenStruc=$(grep "genstruc" "$targetCell" | awk '{print $2}')
+
+# Extract data from input files. I have place holder in rn.
+originalCellData="../catio3_GM4-_Energy/$(extract_cell_data "$originalCellGenStruc" "ORIGINAL")"
+targetCellData="../catio3_GM4-_Energy/$(extract_cell_data "$targetCellGenStruc" "TARGET")"
 
 # Create temporary files with the cell data
 originalTempFile=$(mktemp)
