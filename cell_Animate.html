@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atomic Vibration Animation</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #canvas { border: 1px solid #000; }
+        .controls { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Atomic Vibration Animation</h1>
+    <input type="file" id="fileInput" accept=".txt,.csv">
+    <div class="controls">
+        <button id="startAnimation">Start Animation</button>
+        <button id="stopAnimation">Stop Animation</button>
+        <label for="speedControl">Animation Speed:</label>
+        <input type="range" id="speedControl" min="1" max="100" value="50">
+    </div>
+    <br>
+    <canvas id="canvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let frames = [];
+        let currentFrame = 0;
+        let animationId;
+        let animationSpeed = 50;
+        let isAnimating = false;
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('startAnimation').addEventListener('click', startAnimation);
+        document.getElementById('stopAnimation').addEventListener('click', stopAnimation);
+        document.getElementById('speedControl').addEventListener('input', updateSpeed);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const content = e.target.result;
+                parseCoordinates(content);
+            };
+
+            reader.readAsText(file);
+        }
+
+        function parseCoordinates(content) {
+            frames = [];
+            const lines = content.split('\n');
+            let currentFrame = [];
+
+            for (let line of lines) {
+                if (line.trim() === '') {
+                    if (currentFrame.length > 0) {
+                        frames.push(currentFrame);
+                        currentFrame = [];
+                    }
+                } else {
+                    const [x, y, z] = line.split(',').map(Number);
+                    currentFrame.push({x, y, z});
+                }
+            }
+
+            if (currentFrame.length > 0) {
+                frames.push(currentFrame);
+            }
+
+            console.log(`Loaded ${frames.length} frames`);
+        }
+
+        function startAnimation() {
+            if (frames.length === 0) {
+                alert('Please load a coordinate file first.');
+                return;
+            }
+
+            if (isAnimating) {
+                stopAnimation();
+            }
+
+            isAnimating = true;
+            animate();
+        }
+
+        function stopAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            isAnimating = false;
+        }
+
+        function updateSpeed() {
+            animationSpeed = 101 - document.getElementById('speedControl').value;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (frames.length > 0) {
+                const atoms = frames[currentFrame];
+                for (let atom of atoms) {
+                    ctx.beginPath();
+                    ctx.arc(atom.x * 100 + 300, atom.y * 100 + 200, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'red';
+                    ctx.fill();
+                }
+
+                currentFrame = (currentFrame + 1) % frames.length;
+            }
+
+            if (isAnimating) {
+                animationId = setTimeout(() => {
+                    requestAnimationFrame(animate);
+                }, animationSpeed);
+            }
+        }
+    </script>
+</body>
+</html>

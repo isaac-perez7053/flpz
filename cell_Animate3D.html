@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Atomic Vibration Animation</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; width: 100%; text-align: center; color: white; }
+        .controls { position: absolute; bottom: 10px; width: 100%; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">3D Atomic Vibration Animation</div>
+    <div class="controls">
+        <input type="file" id="fileInput" accept=".txt,.csv">
+        <button id="startAnimation">Start Animation</button>
+        <button id="stopAnimation">Stop Animation</button>
+        <label for="speedControl">Speed:</label>
+        <input type="range" id="speedControl" min="1" max="100" value="50">
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <script>
+        // OrbitControls implementation (simplified)
+        class OrbitControls {
+            constructor(object, domElement) {
+                this.object = object;
+                this.domElement = domElement;
+                this.enabled = true;
+
+                this.update = function() {
+                    // Basic update logic here
+                };
+
+                this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this), false);
+                this.domElement.addEventListener('wheel', this.onMouseWheel.bind(this), false);
+            }
+
+            onMouseDown(event) {
+                if (!this.enabled) return;
+                // Basic mouse down logic here
+            }
+
+            onMouseWheel(event) {
+                if (!this.enabled) return;
+                // Basic mouse wheel logic here
+            }
+        }
+
+        let scene, camera, renderer, controls;
+        let frames = [];
+        let currentFrame = 0;
+        let animationId;
+        let animationSpeed = 50;
+        let isAnimating = false;
+        let atoms = [];
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0x404040);
+            scene.add(ambient);
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(1, 1, 1);
+            scene.add(light);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+            document.getElementById('startAnimation').addEventListener('click', startAnimation);
+            document.getElementById('stopAnimation').addEventListener('click', stopAnimation);
+            document.getElementById('speedControl').addEventListener('input', updateSpeed);
+
+            setupGUI();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const content = e.target.result;
+                parseCoordinates(content);
+                createAtoms();
+            };
+
+            reader.readAsText(file);
+        }
+
+        function parseCoordinates(content) {
+            frames = [];
+            const lines = content.split('\n');
+            let currentFrame = [];
+
+            for (let line of lines) {
+                if (line.trim() === '') {
+                    if (currentFrame.length > 0) {
+                        frames.push(currentFrame);
+                        currentFrame = [];
+                    }
+                } else {
+                    const [x, y, z] = line.split(',').map(Number);
+                    currentFrame.push({x, y, z});
+                }
+            }
+
+            if (currentFrame.length > 0) {
+                frames.push(currentFrame);
+            }
+
+            console.log(`Loaded ${frames.length} frames`);
+        }
+
+        function createAtoms() {
+            // Remove existing atoms
+            atoms.forEach(atom => scene.remove(atom));
+            atoms = [];
+
+            const geometry = new THREE.SphereGeometry(0.1, 32, 32);
+            const material = new THREE.MeshPhongMaterial({color: 0xff0000});
+
+            frames[0].forEach(coord => {
+                const atom = new THREE.Mesh(geometry, material);
+                atom.position.set(coord.x, coord.y, coord.z);
+                scene.add(atom);
+                atoms.push(atom);
+            });
+        }
+
+        function startAnimation() {
+            if (frames.length === 0) {
+                alert('Please load a coordinate file first.');
+                return;
+            }
+
+            if (isAnimating) {
+                stopAnimation();
+            }
+
+            isAnimating = true;
+            animate();
+        }
+
+        function stopAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            isAnimating = false;
+        }
+
+        function updateSpeed() {
+            animationSpeed = 101 - document.getElementById('speedControl').value;
+        }
+
+        function animate() {
+            if (isAnimating && frames.length > 0) {
+                const frame = frames[currentFrame];
+                atoms.forEach((atom, index) => {
+                    atom.position.set(frame[index].x, frame[index].y, frame[index].z);
+                });
+                currentFrame = (currentFrame + 1) % frames.length;
+            }
+
+            renderer.render(scene, camera);
+            controls.update();
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function setupGUI() {
+            const gui = new dat.GUI();
+            const params = {
+                backgroundColor: "#000000"
+            };
+
+            gui.addColor(params, 'backgroundColor').onChange(function(value) {
+                scene.background = new THREE.Color(value);
+            });
+        }
+    </script>
+</body>
+</html>
