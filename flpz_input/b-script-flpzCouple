@@ -108,6 +108,8 @@ handle_files() {
             "phononCoupling/transformCell.sh"
             "phononCoupling/eigVecExtension.sh"
             "phononCoupling/datapointCalcofEnergyCouple.sh"
+            "perturbations/datapointCalcofPert.sh"
+            "energy/datapointCalcofEnergy.sh"
             "phononCoupling/dataAnalysisCouple.sh"
             "polynomialFitting/scientificToDecimal.sh"
             "phononCoupling/transformCell_Map.py"
@@ -133,6 +135,8 @@ handle_files() {
             "transformCell.sh"
             "eigVecExtension.sh"
             "datapointCalcofEnergyCouple.sh"
+            "datapointCalcofEnergy.sh"
+            "datapointCalcofPert.sh"
             "dataAnalysisCouple.sh"
             "scientificToDecimal.sh"
             "transformCell_Map.py"
@@ -209,24 +213,8 @@ cat "3D_coordinates.dat"
 # only map which atoms are which in the new cell, but will convert
 # the old eigendisplacement vector to be valid for the new cell. 
 
-# Testing some of the internal scripts:
-echo "Printing the output of transformCellpy.sh"
-echo "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")"
-
-echo "Printing the output of eigVecExtension.sh"
-echo "$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1")")"
-
 if [ "$(echo "${eig_disp1}" | wc -l)" -gt "$(echo "${eig_disp2}" | wc -l)" ]; then
     echo "eig_disp1 was greater than eig_disp2"
-
-    # Testing some of the internal scripts:
-    echo "Printing the output of transformCellpy.sh"
-    echo "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1")"
-
-    echo "Printing the output of eigVecExtension.sh"
-    echo "$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1")")"
-
-    # Testing ends here
 
     neweig_disp2="$(bash eigVecExtension.sh -p "$eig_disp2" "$(bash transformCellpy.sh "../$inputIrrep_2" "../$inputIrrep_1" \
     | sed -n '/Mapping =/,/^$/p' \
@@ -241,29 +229,45 @@ if [ "$(echo "${eig_disp1}" | wc -l)" -gt "$(echo "${eig_disp2}" | wc -l)" ]; th
     sed -i '' "s/${eig_disp2}/${neweig_disp2}/g" "$input_file"
 else
     echo "eig_disp2 was greater than eig_disp1"
+    echo "$eig_disp1"
 
-    # Testing some of the internal scripts:
-    echo "Printing the output of transformCellpy.sh"
-    echo "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")"
+    # Run the transformCellpy.sh script and capture its output
+    output=$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")
 
-    echo "Printing the output of eigVecExtension.sh"
-    echo "$(bash eigVecExtension.sh -p "$eig_disp1" "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2")")"
+    # Extract the "Mapping" array
+    mapping=$(echo "$output" | grep -A 1 "Mapping:" | tail -n 1)
 
-    # Testing ends here
-
-    neweig_disp1="$(bash eigVecExtension.sh -p "$eig_disp1" "$(bash transformCellpy.sh "../$inputIrrep_1" "../$inputIrrep_2" \
-    | sed -n '/Mapping =/,/^$/p' \
-    | tail -n +2 \
-    | awk '{print $1}' \
-    | grep '^[0-9]*$')")"
-
-    echo "Printing the new eigen displacement"
-    echo "$neweig_disp1"
-
+    # Output or store the extracted mapping
+    echo "Extracted Mapping: $mapping"
+    echo "eig_disp2: $eig_disp2"
+    neweig_disp1="$(bash eigVecExtension.sh -p "$eig_disp2" "$mapping")"
+    echo "Printing neweig_disp1: $neweig_disp1"
+    echo "SED"
     #Update the eigendisplacement value in the input file. 
-    sed -i '' "s/${eig_disp1}/${neweig_disp1}/g" "$input_file"
-fi 
+    # Create a temporary file
+    temp_file=$(mktemp)
 
+    # Escape special characters in the search string
+    escaped_search=$(printf '%s\n' "$eig_disp1" | sed 's/[[\.*^$/]/\\&/g')
+
+    # Perform the substitution
+    awk -v search="$escaped_search" -v replace="$neweig_disp1" '
+        {
+            if (index($0, search) == 1) {
+                print replace
+                for (i = 1; i < NF; i++) {
+                    getline
+                }
+            } else {
+                print
+            }
+        }
+    ' "$input_file" > "$temp_file"
+
+    # Replace the original file with the modified content
+    mv "$temp_file" "$input_file"
+
+fi
 # Calculate datapoints and store points into 3D_coordinates.dat 
 if [ "$run_energy" = true ]; then
   bash datapointCalcofEnergy.sh "$input_file" 
@@ -272,7 +276,7 @@ else
 fi
 
 # Put output datapoints of datapointCalcofEnergyCouple.sh into 3D_coordinates.dat
-cat "$(matlabTodat.sh "Datasets_vec1.m" | awk '{print $6}')" >> 3D_coordinates.dat 
+cat "$(bash matlabTodat.sh "Datasets_vec1.m" | awk '{print $6}')" >> 3D_coordinates.dat 
 
 # Fit data to a surface
 polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" \

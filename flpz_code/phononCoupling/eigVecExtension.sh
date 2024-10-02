@@ -23,28 +23,42 @@ while getopts "${OPTSTRING}" opt; do
     ;;
   esac
 done
-shift $((OPTIND - 1))
-
-# This will move down each line in the mapping variable and print every corresponding eigenvector in an array.
-# Note that the
+shift 
 
 eig_vec="$1"
 mapping="$2"
 
-if [ "$eigVecExtOpt" = "matlab" ]; then
 
+# Ensure mapping is valid before processing
+if [ -z "$mapping" ]; then
+  echo "Error: mapping is empty!"
+  exit 1
+fi
+
+# Filter out any unwanted newlines or spaces in mapping
+clean_mapping=$(echo "$mapping" | tr -d '\r' | tr -d '\n' | tr -s ' ')
+
+if [ "$eigVecExtOpt" = "matlab" ]; then
   declare -a extendedEig_vec
   while read -r line; do
-    extendedEig_vec+=("$(echo "$eig_vec" | sed -n "${line}p")")
-  done < <(echo "$mapping")
-
-  # Print each element of the array
+    if [[ ! -z "$line" ]]; then
+      extendedEig_vec+=("$(echo "$eig_vec" | sed -n "${line}p")")
+    fi
+  done < <(echo "$clean_mapping")
+  
   for element in "${extendedEig_vec[@]}"; do
     echo "$element"
   done
 elif [ "$eigVecExtOpt" = "python" ]; then
-  extendedEig_vec=("$($mapping | tr -d '[],')")
+  cleaned_mapping=$(echo "$clean_mapping" | tr -cd '0-9 ')
+  IFS=' ' read -ra extendedEig_vec <<< "$cleaned_mapping"
   for element in "${extendedEig_vec[@]}"; do
-    echo "$element"
+    if [[ "$element" =~ ^[0-9]+$ ]]; then
+      echo "$eig_vec" | sed -n "${element}p"
+    else
+      echo "Warning: Invalid element '$element' skipped" >&2
+    fi
   done
 fi
+
+
