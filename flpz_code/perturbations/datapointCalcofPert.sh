@@ -105,7 +105,8 @@ init_output_files() {
     echo "$num_datapoints" >"$datasets_file"
 
     if [ "$phonon_coupling" = 1 ]; then
-        "$(calculate "$grid_dimX*$grid_dimY")" >"$datasets_file"
+        density="$(calculate "$grid_dimX*$grid_dimY")" 
+        echo "$density" >"$datasets_file"
     else
         echo "$num_datapoints" >"$datasets_file"
     fi
@@ -183,7 +184,7 @@ extract_normalize_eigdisp2() {
     local begin_mode=$((mode_location + 1))
     local end_mode=$((begin_mode + natom - 1))
 
-    eig_disp1=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
+    eig_disp2=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
     echo "Printing eigdisp_array2 before normalization"
     echo "$eig_disp2"
 
@@ -198,22 +199,22 @@ extract_normalize_eigdisp2() {
     # Read all components into the array
     while read -r line; do
         read -ra temp_array <<<"$line"
-        eigdisp_array+=("${temp_array[@]}")
+        eigdisp_array2+=("${temp_array[@]}")
     done <<<"$eig_disp2"
 
     # Calculate the normalized eigen displacement
     local eig_squaresum=0
-    for eig_component in "${eigdisp_array[@]}"; do
+    for eig_component in "${eigdisp_array2[@]}"; do
         eig_squaresum=$(calculate "($eig_component)**2 + $eig_squaresum")
     done
     normfact=$(calculate "sqrt($eig_squaresum)")
 
-    echo "Normfact for eigen displacement 1:"
+    echo "Normfact for eigen displacement 2:"
     echo "$normfact"
 
     local normalized_array=()
-    for i in "${!eigdisp_array[@]}"; do
-        normalized_value=$(calculate "${eigdisp_array[i]}/$normfact")
+    for i in "${!eigdisp_array2[@]}"; do
+        normalized_value=$(calculate "${eigdisp_array2[i]}/$normfact")
         normalized_array+=("$normalized_value")
     done
 

@@ -8,7 +8,7 @@ genstruc general_structure.abi
 num_datapoints 9
 
 #Number of processers for datapoint calculation
-nproc 10
+nproc 25
 
 # Minimum amplitude during datapoint collection
 min 0
@@ -17,5 +17,8 @@ min 0
 max 0.7
 
 # Time limit for jobs
-time_limit 23:59:59
+time_limit 47:59:59
+
+# sbatch preamble 
+sbatch_preamble b-script-preamble.txt
 

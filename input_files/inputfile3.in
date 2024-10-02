@@ -19,14 +19,17 @@ datasets_1 filepath/1
 datasets_2 filepath/2
 
 #Define grid resolution
-grid_dim 5 7 
+grid_dim 2 2
 
 #Define grid range written as xmin, xmax, ymin, ymax
-grid_range 0.0 0.7 0.0 0.5
+grid_range 0.0 0.7 0.0 0.7
 
 
 # Time limit for jobs
 time_limit 47:59:59
+
+# sbatch preamble 
+sbatch_preamble b-script-preamble.txt
 
 
 

@@ -45,6 +45,7 @@ read_input_params() {
     inputIrrep_2=$(grep "inputIrrep_2" "$input_file" | awk '{print $2}')
     inputData_1=$(grep "inputData_1" "$input_file" |awk '{print $2}')
     inputData_2=$(grep "inputData_2" "$input_file" | awk '{print $2}')
+    bScriptPreamble=$(grep "sbatch_preamble" "$input_file" | awk '{print $2}')
     irrep_1Dir=$(echo "$inputIrrep_1" | cut -d'/' -f1 | rev | cut -d' ' -f1 | rev)
     irrep_2Dir=$(echo "$inputIrrep_2" | cut -d'/' -f1 | rev | cut -d' ' -f1 | rev)
 
@@ -166,6 +167,7 @@ mkdir -p "$dir"
 handle_files "flpz_code" "cp"
 cp "$input_file" "$dir/"
 cp "$general_structure_file" "$dir/"
+cp "$bScriptPreamble" "$dir/"
 
 # Enter in new working directory 
 cd "$dir" || exit
