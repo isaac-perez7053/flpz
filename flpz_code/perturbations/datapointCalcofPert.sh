@@ -559,24 +559,32 @@ else
 fi
 
 job_ids=()
-wait_for_jobs
 
-echo "Data Analysis Begins"
+
+
+
+
+
+# wait_for_jobs
+# echo "Data Analysis Begins"
+
 echo "];" >>"$xpoints"
 
 # Organize files
 mkdir -p "datapointAbiFiles_vec${vecNum}" "DDBs_vec${vecNum}"
 mv "${structure}_*_vec${vecNum}.abi" "datapointAbiFiles_vec${vecNum}/"
 
-if [ "$run_piezo" = "true" ]; then 
-    bash dataAnalysisPert.sh -p "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
-else 
-    bash dataAnalysisPert.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
-fi
 
-echo "Data Analysis is Complete"
+# if [ "$run_piezo" = "true" ]; then 
+#     bash dataAnalysisPert.sh -p "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
+# else 
+#     bash dataAnalysisPert.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
+# fi
 
-mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
-mv "${structure}_*_vec${vecNum}o_DS4_DDB" "${structure}_*_vec${vecNum}o_DS5_DDB DDBs_vec${vecNum}/"
+
+# echo "Data Analysis is Complete"
+
+# mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
+# mv "${structure}_*_vec${vecNum}o_DS4_DDB" "${structure}_*_vec${vecNum}o_DS5_DDB DDBs_vec${vecNum}/"
 
 echo "Flexoelectricity and Piezoelectricity calculation completed successfully."

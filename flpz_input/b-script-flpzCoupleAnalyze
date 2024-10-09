@@ -1,0 +1,32 @@
+#!/bin/bash
+
+
+# Ensure current directory is set
+cd /home/iperez/projects/flpz || exit
+
+# FLPZ Coupling Program
+# Executes the FLPZ (Flexoelectric Piezoelectric) perturbation coupling calculations
+
+# Usage: ./flpzCouple.sh [-e] <input_file> <irrep_1> <irrep_2>
+# Use -e flag to run datapointCalcofEnergy.sh instead of datapointCalcofEnergyPert.sh
+
+if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
+    echo "Usage: $0  [-e] <input_file> <irrep_1> <irrep_2>"
+    exit 1
+fi
+# Read arguments
+input_file="$1"
+irrep_1="$2"
+irrep_2="$3"
+
+# Put output datapoints of datapointCalcofEnergyCouple.sh into 3D_coordinates.dat
+cat "$(bash matlabTodat.sh "Datasets_vec1.m" | awk '{print $6}')" >> 3D_coordinates.dat 
+
+# Fit data to a surface
+polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" \
+"$(bash isoInvariant.sh "$input_file" "$irrep_1" "$irrep_2")")"
+
+echo "$polynomialFittingOut"
+echo "The equation of the fitted surface is:" 
+echo "$polynomialFittingOut"| sed -n '/3D Fitting: All terms/,/MSE/p' \
+| grep -v -e '3D Fitting: All terms' -e 'MSE'

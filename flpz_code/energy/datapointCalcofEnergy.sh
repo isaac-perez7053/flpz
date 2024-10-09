@@ -514,17 +514,17 @@ else
     done
 fi
 
-wait_for_jobs
+# wait_for_jobs
 
-echo "Data Analysis Begins"
+# echo "Data Analysis Begins"
 echo "];" >>"$xpoints"
 
 # Organize files and run the data analysis script
 mkdir -p "datapointAbiFiles_vec${vecNum}"
 mv "${structure}_*_vec${vecNum}.abi" "datapointAbiFiles_vec${vecNum}/"
-bash dataAnalysisEnergy.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
-echo "Data Analysis is Complete"
+# bash dataAnalysisEnergy.sh "${datasets_file}" "$xpoints" "$datasetsAbo_file" "$vecNum"
+# echo "Data Analysis is Complete"
 
-mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
+# mv "${structure}_*_vec${vecNum}.abo" "datapointAbiFiles_vec${vecNum}/"
 
 echo "Total energy calculation for perturbed system completed successfully."

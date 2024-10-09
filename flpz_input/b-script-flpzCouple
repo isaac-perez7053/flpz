@@ -117,6 +117,7 @@ handle_files() {
             "phononCoupling/transformCellpy.sh"
             "phononCoupling/matlabTodat.sh"
             "shared/rprimDiagonalization.py"
+            "flpz_input/b-script-flpzCoupleAnalyze"
         )
     elif [ "$2" = "rm" ]; then
         local files=(
@@ -276,16 +277,4 @@ if [ "$run_energy" = true ]; then
 else
   bash datapointCalcofPert.sh "$input_file"
 fi
-
-# Put output datapoints of datapointCalcofEnergyCouple.sh into 3D_coordinates.dat
-cat "$(bash matlabTodat.sh "Datasets_vec1.m" | awk '{print $6}')" >> 3D_coordinates.dat 
-
-# Fit data to a surface
-polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" \
-"$(bash isoInvariant.sh "$input_file" "$irrep_1" "$irrep_2")")"
-
-echo "$polynomialFittingOut"
-echo "The equation of the fitted surface is:" 
-echo "$polynomialFittingOut"| sed -n '/3D Fitting: All terms/,/MSE/p' \
-| grep -v -e '3D Fitting: All terms' -e 'MSE'
 
