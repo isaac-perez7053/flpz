@@ -171,8 +171,7 @@ extract_normalize_eigdisp2() {
     local begin_mode=$((mode_location + 1))
     local end_mode=$((begin_mode + natom - 1))
 
-    echo "DEBUG: $begin_mode"
-    echo "DEBUG: $end_mode"
+
     eig_disp2=$(sed -n "${begin_mode},${end_mode}p" "$input_file")
     echo "Printing eigdisp_array2 before normalization"
     echo "$eig_disp2"
@@ -318,7 +317,7 @@ create_perturbedcoupled_files() {
     # Calculate the scalars used to multiply the displacement vectors
     cstep_sizeXw=$(calculate "${step_sizeX} * ${iterationX}")
     cstep_sizeYw=$(calculate "${step_sizeY} * ${iterationY}")
-    cstep_sizeX=$(calcualte "${cstep_sizeXw} + ${xmin}")
+    cstep_sizeX=$(calculate "${cstep_sizeXw} + ${xmin}")
     cstep_sizeY=$(calculate "${cstep_sizeYw} + ${ymin}")
     for component in $xcart; do
         local eig_dispcompX="${eigdisp_array1[$count]}"
