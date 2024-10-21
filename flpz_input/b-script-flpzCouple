@@ -17,7 +17,7 @@ if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
 fi
 
 # Initialize flag variable
-run_energy=false
+run_energy=true
 
 # Parse command line options
 while getopts "e" opt; do

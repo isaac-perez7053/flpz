@@ -1,9 +1,5 @@
 #!/bin/bash
 
-
-# Ensure current directory is set
-cd /home/iperez/projects/flpz || exit
-
 # FLPZ Coupling Program
 # Executes the FLPZ (Flexoelectric Piezoelectric) perturbation coupling calculations
 
@@ -16,6 +12,7 @@ if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
 fi
 # Read arguments
 input_file="$1"
+general_structure_file=$(grep "genstruc" "$input_file" | awk '{print $2}')
 irrep_1="$2"
 irrep_2="$3"
 
@@ -23,7 +20,8 @@ irrep_2="$3"
 cat "$(bash matlabTodat.sh "Datasets_vec1.m" | awk '{print $6}')" >> 3D_coordinates.dat 
 
 # Fit data to a surface
-polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordiantes.dat" \
+bash xcartToxred.sh "$general_structure_file"
+polynomialFittingOut="$(python3 polynomialFitting2D3D.py "3D_coordinates.dat" \
 "$(bash isoInvariant.sh "$input_file" "$irrep_1" "$irrep_2")")"
 
 echo "$polynomialFittingOut"

@@ -30,6 +30,7 @@ files_to_process=(
     "b-script-flpzEnergy"
     "b-script-flpzPert"
     "b-script-flpzCouple"
+    "b-script-flpzCoupleAnalyze"
 )
 
 # Function to insert file content after the first line

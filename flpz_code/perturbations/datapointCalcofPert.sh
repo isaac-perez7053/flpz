@@ -72,7 +72,7 @@ read_input_params() {
         xmin=$(grep "grid_range" "$input_file" | awk '{print $2}')
         xmax=$(grep "grid_range" "$input_file" | awk '{print $3}')
         ymin=$(grep "grid_range" "$input_file" | awk '{print $4}')
-        ymax=$(grep "grid_range" "$input_file" | awk '{pring $5}')
+        ymax=$(grep "grid_range" "$input_file" | awk '{print $5}')
     else
         num_datapoints=$(grep "num_datapoints" "$input_file" | awk '{print $2}')
         max=$(grep "max" "$input_file" | awk '{print $2}')

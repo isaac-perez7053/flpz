@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib
 print("Matplotlib backend:", matplotlib.get_backend())
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from scipy.optimize import leastsq
 from mpl_toolkits.mplot3d import Axes3D
 from itertools import combinations
 import plotly.graph_objects as go
@@ -29,8 +29,7 @@ def scale_data(x, y, z):
     return x_scaled, y_scaled, z_scaled
 
 def create_polynomial_function(terms):
-    def polynomial(xy, *params):
-        x, y = xy
+    def polynomial_surface(x, y, *params):
         result = params[-1]  # Constant term
         for param, term in zip(params[:-1], terms):
             if 'x' in term and 'y' in term:
@@ -48,7 +47,21 @@ def create_polynomial_function(terms):
                 power = int(term.split('^')[1]) if '^' in term else 1
                 result += param * y**power
         return result
-    return polynomial
+    return polynomial_surface
+
+def fit_surface(x_data, y_data, z_data, func, initial_params):
+    def residuals(params, x, y, z):
+        z_pred = func(x, y, *params)
+        return z - z_pred
+
+    # Flatten data for optimization
+    x_flat = x_data.flatten()
+    y_flat = y_data.flatten()
+    z_flat = z_data.flatten()
+
+    # Least squares optimization
+    optimized_params, _ = leastsq(residuals, initial_params, args=(x_flat, y_flat, z_flat))
+    return optimized_params
 
 def create_2d_plot(x_scaled, y, y_pred, axis_label, terms, popt):
     plt.figure(figsize=(10, 6))
@@ -64,130 +77,6 @@ def create_2d_plot(x_scaled, y, y_pred, axis_label, terms, popt):
     
     plt.savefig(f'2d_fit_{axis_label.lower()}.png')
     plt.close()
-
-def fit_and_evaluate_2d(x, y, func, p0):
-    popt, _ = curve_fit(func, x, y, p0=p0, maxfev=10000)
-    y_pred = func(x, *popt)
-    mse = np.mean((y - y_pred)**2)
-    r2 = 1 - np.sum((y - y_pred)**2) / np.sum((y - np.mean(y))**2)
-    return popt, mse, r2, y_pred
-
-def fit_and_evaluate_3d(x, y, z, func, p0):
-    popt, _ = curve_fit(func, (x, y), z, p0=p0, maxfev=10000)
-    z_pred = func((x, y), *popt)
-    mse = np.mean((z - z_pred)**2)
-    r2 = 1 - np.sum((z - z_pred)**2) / np.sum((z - np.mean(z))**2)
-    return popt, mse, r2, z_pred
-
-def create_2d_polynomial_function(powers):
-    def polynomial(x, *params):
-        return sum(param * x**power for param, power in zip(params[:-1], powers)) + params[-1]
-    return polynomial
-
-def stepwise_fitting_2d(x, z, terms, axis_label):
-    powers = []
-    for term in terms:
-        if axis_label.lower() in term:
-            if '^' in term:
-                powers.append(int(term.split('^')[1]))
-            else:
-                powers.append(1)  # For terms like 'x' or 'y', assume power is 1
-    powers.sort()  # Sort powers in ascending order
-    
-    best_terms = []
-    best_popt = []
-    
-    for step, power in enumerate(powers, 1):
-        current_powers = powers[:step]
-        poly_func = create_2d_polynomial_function(current_powers)
-        
-        if step == 1:
-            initial_guess = [1.0] * (step + 1)  # +1 for the constant term
-        else:
-            initial_guess = list(previous_popt) + [0.0]  # Add a new parameter
-        
-        popt, mse, r2, y_pred = fit_and_evaluate_2d(x, z, poly_func, initial_guess)
-        
-        print(f"2D Step {step}: Fitting terms up to {axis_label}^{power}")
-        print(f"MSE: {mse:.6e}")
-        print(f"R-squared: {r2:.6f}\n")
-        
-        current_terms = [f'{axis_label}^{p}' if p != 1 else axis_label for p in current_powers] + ['1']
-        best_terms = current_terms
-        best_popt = popt
-        previous_popt = popt
-        
-        # Create and save 2D plot
-        create_2d_plot(x, z, y_pred, axis_label, current_terms, popt)
-    
-    return best_terms, best_popt
-
-def stepwise_fitting_3d(x, y, z, terms, uncoupled_terms, uncoupled_popt):
-    coupled_terms = [term for term in terms if 'x' in term and 'y' in term]
-    all_terms = list(dict.fromkeys(uncoupled_terms + coupled_terms + ['1']))  # Remove duplicates and add constant term
-
-    def poly_func(xy, *params):
-        x, y = xy
-        result = params[-1]  # Constant term
-        for term, param in zip(all_terms[:-1], params[:-1]):
-            if 'x' in term and 'y' in term:
-                if '^' in term:
-                    x_part, y_part = term.split('y')
-                    x_power = int(x_part.split('^')[1]) if '^' in x_part else 1
-                    y_power = int(y_part.split('^')[1]) if '^' in y_part else 1
-                else:
-                    x_power = y_power = 1
-                result += param * (x**x_power) * (y**y_power)
-            elif 'x' in term:
-                power = int(term.split('^')[1]) if '^' in term else 1
-                result += param * x**power
-            elif 'y' in term:
-                power = int(term.split('^')[1]) if '^' in term else 1
-                result += param * y**power
-        return result
-
-    # Rest of the function remains the same...
-
-    # Create initial guess
-    initial_guess = []
-    for term in all_terms[:-1]:  # Exclude the constant term
-        if term in uncoupled_terms:
-            initial_guess.append(uncoupled_popt[uncoupled_terms.index(term)])
-        else:
-            initial_guess.append(1.0)
-    initial_guess.append(0.0)  # Add initial guess for constant term
-
-    # Try fitting with different methods and parameters
-    try:
-        popt, pcov = curve_fit(poly_func, (x, y), z, p0=initial_guess, maxfev=100000, method='trf', loss='soft_l1')
-    except RuntimeError:
-        try:
-            popt, pcov = curve_fit(poly_func, (x, y), z, p0=initial_guess, maxfev=100000, method='lm')
-        except RuntimeError:
-            popt, pcov = curve_fit(poly_func, (x, y), z, p0=initial_guess, maxfev=100000)
-
-    # Calculate predictions and metrics
-    z_pred = poly_func((x, y), *popt)
-    mse = np.mean((z - z_pred)**2)
-    r2 = 1 - np.sum((z - z_pred)**2) / np.sum((z - np.mean(z))**2)
-
-    print(f"3D Fitting: All terms")
-    print(print_equation(popt, all_terms))
-    print(f"MSE: {mse:.6e}")
-    print(f"R-squared: {r2:.6f}\n")
-
-    return all_terms, popt, mse, r2
-
-def print_equation(popt, terms):
-    equation = "z = "
-    for coef, term in zip(popt[:-1], terms[:-1]):
-        if term != '1':
-            if '^' in term:
-                equation += f"{coef:.6e}{term} + "
-            else:
-                equation += f"{coef:.6e}{term} + "
-    equation += f"{popt[-1]:.6e}"  # Add constant term
-    return equation
 
 def create_interactive_plot(x, y, z, X, Y, Z, terms, popt):
     fig = make_subplots(rows=1, cols=1, specs=[[{'type': 'surface'}]])
@@ -226,55 +115,52 @@ def create_interactive_plot(x, y, z, X, Y, Z, terms, popt):
     
     fig.write_html("interactive_plot_final.html")
 
-def filter_constant_axis(x, y, z, axis, tolerance=1e-6):
-    if axis == 'x':
-        mask = np.isclose(y, np.min(y), atol=tolerance)
-    else:  # axis == 'y'
-        mask = np.isclose(x, np.min(x), atol=tolerance)
-    
-    return x[mask], y[mask], z[mask]
+def print_equation(popt, terms):
+    equation = "z = "
+    for coef, term in zip(popt[:-1], terms[:-1]):
+        if term != '1':
+            if '^' in term:
+                equation += f"{coef:.6e}{term} + "
+            else:
+                equation += f"{coef:.6e}{term} + "
+    equation += f"{popt[-1]:.6e}"  # Add constant term
+    return equation
 
 def main():
     print("Current working directory:", os.getcwd())
     data_file, terms = parse_args()
     x, y, z = load_data(data_file)
     x_scaled, y_scaled, z_scaled = scale_data(x, y, z)
-    
-    x_terms = [term for term in terms if 'x' in term and 'y' not in term]
-    y_terms = [term for term in terms if 'y' in term and 'x' not in term]
-    coupled_terms = [term for term in terms if 'x' in term and 'y' in term]
-    print(f"X terms: {x_terms}")
-    print(f"Y terms: {y_terms}")
-    print(f"Coupled terms: {coupled_terms}")
-    
-    # Filter data for 2D fitting
-    x_filtered, _, z_filtered_x = filter_constant_axis(x_scaled, y_scaled, z_scaled, 'x')
-    _, y_filtered, z_filtered_y = filter_constant_axis(x_scaled, y_scaled, z_scaled, 'y')
-    
-    # 2D fitting for uncoupled terms
-    uncoupled_terms_x, uncoupled_popt_x = stepwise_fitting_2d(x_filtered, z_filtered_x, x_terms, 'X')
-    uncoupled_terms_y, uncoupled_popt_y = stepwise_fitting_2d(y_filtered, z_filtered_y, y_terms, 'Y')
-    
-    uncoupled_terms = uncoupled_terms_x[:-1] + uncoupled_terms_y[:-1]  # Exclude constant terms
-    uncoupled_popt = list(uncoupled_popt_x[:-1]) + list(uncoupled_popt_y[:-1])  # Exclude constant terms
 
-    all_terms = uncoupled_terms + coupled_terms
-    best_terms, best_popt, best_mse, best_r2 = stepwise_fitting_3d(x_scaled, y_scaled, z_scaled, all_terms, uncoupled_terms, uncoupled_popt)
-    
+    # Create the polynomial function
+    poly_func = create_polynomial_function(terms)
+
+    # Initial guess for parameters (one for each term plus a constant term)
+    initial_guess = [1.0] * (len(terms) + 1)
+
+    # Fit the surface
+    best_popt = fit_surface(x_scaled, y_scaled, z_scaled, poly_func, initial_guess)
+
+    # Calculate predictions and metrics
+    z_pred = poly_func(x_scaled, y_scaled, *best_popt)
+    mse = np.mean((z_scaled - z_pred)**2)
+    r2 = 1 - np.sum((z_scaled - z_pred)**2) / np.sum((z_scaled - np.mean(z_scaled))**2)
+
     print("\nFinal best fit:")
-    print(f"Terms: {', '.join(best_terms)}")
-    print(print_equation(best_popt, best_terms))
-    print(f"MSE: {best_mse:.6e}")
-    print(f"R-squared: {best_r2:.6f}")
+    print(f"Terms: {', '.join(terms + ['1'])}")
+    print(print_equation(best_popt, terms + ['1']))
+    print(f"MSE: {mse:.6e}")
+    print(f"R-squared: {r2:.6f}")
 
-    # Create interactive plot for the final best fit
+    # Create smooth grid for surface plot
     x_smooth = np.linspace(0, 1, 100)
     y_smooth = np.linspace(0, 1, 100)
     X, Y = np.meshgrid(x_smooth, y_smooth)
-    Z = create_polynomial_function(best_terms)((X, Y), *best_popt)
-    create_interactive_plot(x_scaled, y_scaled, z_scaled, X, Y, Z, best_terms, best_popt)
+    Z = poly_func(X, Y, *best_popt)
+
+    # Create interactive plot
+    create_interactive_plot(x_scaled, y_scaled, z_scaled, X, Y, Z, terms + ['1'], best_popt)
     print("Interactive plot for final fit saved as 'interactive_plot_final.html'")
-    print("2D plots for X-axis and Y-axis fits should be saved in the current directory")
 
 if __name__ == "__main__":
     main()
